@@ -1,12 +1,26 @@
-#[derive(Debug, PartialEq)]
-pub enum Number{
-Float(f32),
-Integer(i32)
+#[derive(Debug, PartialEq, PartialOrd)]
+
+pub enum Number {
+  Float(f32),
+  Integer(i32),
+}
+
+impl Eq for Number {}
+
+impl Ord for Number {
+  fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+    match (self, other) {
+      (Number::Float(a), Number::Float(b)) => a.partial_cmp(b).unwrap(),
+      (Number::Integer(a), Number::Integer(b)) => a.cmp(b),
+      (Number::Float(_), Number::Integer(_)) => std::cmp::Ordering::Greater,
+      (Number::Integer(_), Number::Float(_)) => std::cmp::Ordering::Less,
+    }
+  }
 }
 
 
 // tokens
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, PartialOrd,Eq, Ord)]
 pub enum Token{
   Function,
   If,
@@ -119,6 +133,21 @@ impl  Lexer{
       }
     }
 
+    // Check if the next character is alphanumeric, which would make the number invalid
+    if let Some(c) = self.current_char() {
+      if c.is_alphanumeric() {
+        eprintln!("Error: Invalid number format at line: {}, col: {}", self.line, self.col);
+        // skip the invalid number
+        while let Some(c) = self.current_char() {
+          if !c.is_alphanumeric() {
+            break;
+          }
+          self.advance();
+      }
+       return Number::Integer(0);
+    }
+  }
+
     if is_float {
       Number::Float(number.parse().unwrap())
     } else {
@@ -144,7 +173,8 @@ impl  Lexer{
     }
     if !is_closed{
       // unclosed string print col and line
-      panic!("Unclosed string at line: {}, col: {}", self.line, self.col);
+      eprintln!("Error: Unclosed string at line: {}, col: {}", self.line, self.col);
+      std::process::exit(1);
     }
     string
   }
@@ -239,7 +269,8 @@ impl  Lexer{
               self.advance();
             }
             if !is_closed{
-              panic!("Unclosed comment block at line: {}, col: {}", self.line, self.col);
+                eprintln!("Error: Unclosed comment block at line: {}, col: {}", self.line, self.col);
+                std::process::exit(1);
             }
             continue;
           }
