@@ -93,5 +93,5 @@ for_loop -> for <identifier> in <array> {<body>}
 
 # Functions
 function -> fn <identifier> (<declaration>, ...) {<body>}
-function_call -> <identifier>(<argument>, ...)
+function_call -> <identifier>(<variable>, ...)
 

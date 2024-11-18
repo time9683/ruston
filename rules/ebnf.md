@@ -30,3 +30,12 @@ array_use -> <identifier>[u32]
 tuple_use -> <identifier>.[u32]
 
 # Conditionals
+conditional -> 'if' <logic> '{' <body> '}' {'else' ('{' <body> '}' | <conditional>)}
+body ->  <expression> | <statement> | <conditional> | <loop>
+
+# Loops
+loop -> 'loop' | ('for' <identifier> 'in' (<array> | '('number'..'{'='}?number')')) '{' <body> '}'
+
+# Functions
+function -> 'fn' <identifier> '(' <declaration> {',' <declaration>}*')' '{' <body> '}'
+function_call -> <identifier> '('<variable> {',' <variable>}*')'
