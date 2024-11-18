@@ -1,12 +1,14 @@
 mod lexer;
+mod sintax;
 use lexer::{Lexer,Token};
 use dialoguer::{theme::ColorfulTheme,Select};
+use sintax::Sintax;
 
 
 fn main() {
     // get the path to the file
     let args  =  std::env::args().collect::<Vec<String>>();
-    if  args.len() != 2
+    if  args.len() < 2
     {
         // print the usage
         println!("Usage: cargo run <path_to_file>");
@@ -22,6 +24,24 @@ fn main() {
     let source = std::fs::read_to_string(path).expect("Could not read file");
     // create a lexer
     let mut lexer = Lexer::new(source);
+
+    if args.len() == 2{
+        let mut parser = Sintax::new(lexer);
+        parser.parse();
+        return;
+    }
+
+
+
+
+
+
+
+
+
+
+
+
 
     let options = &["Lexical Analysis", "Syntax Analysis", "Semantic Analysis"];
     let selection = Select::with_theme(&ColorfulTheme::default())

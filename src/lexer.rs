@@ -48,6 +48,7 @@ pub enum Token{
   }
 
 
+#[derive(Debug, Clone)]
 pub struct Lexer{
   source: String,
   current: usize,
@@ -341,6 +342,10 @@ impl  Lexer{
   }
 }
   
+  pub fn peek_token(&mut self) -> Token{
+    let mut lexer = self.clone();
+    lexer.get_next_token()
+  }
 
 
 
