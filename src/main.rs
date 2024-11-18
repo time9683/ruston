@@ -8,7 +8,7 @@ use sintax::Sintax;
 fn main() {
     // get the path to the file
     let args  =  std::env::args().collect::<Vec<String>>();
-    if  args.len() != 2
+    if  args.len() < 2
     {
         // print the usage
         println!("Usage: cargo run <path_to_file>");
