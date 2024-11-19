@@ -24,7 +24,7 @@ declaration -> ('let' {'mut'}|'const') <identifier> {: <type(s)>}
 type(s) -> '(' type {',' type}* ')' | '[' type ';' u32 ']' | type
 
 tuple -> '(' (<variable> {',' <variable>}+) | (string {',' string}+) ')' 
-array -> '[' (<variable> {',' <variable>}+) | (<variable> {',' <variable>}+) | (i32 ':' i32) ']'
+array -> '[' (<variable> {',' <variable>}+) | (<variable> {',' <variable>}+) | (i32 ';' i32) ']'
 
 array_use -> <identifier>[u32]
 tuple_use -> <identifier>.[u32]
