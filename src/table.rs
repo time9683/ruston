@@ -5,6 +5,7 @@ struct Symbol {
     occurence: u32, // Line of first occurence
     scope: u32,  // Scope level
     use_type: &str, // Type of identifier, either declaration or reference
+    data_type: &str, // Type of data
 }
 
 struct SymbolTable {
