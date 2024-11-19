@@ -74,6 +74,11 @@ fn main() {
 
 fn get_type_and_value(token: &Token) -> (&str, String) {
     match token {
+        Token::ArrowType => ("ArrowType", "->".to_string()),
+        Token::In => ("In", "in".to_string()),
+        Token::True => ("True", "true".to_string()),
+        Token::False => ("False", "false".to_string()),
+        Token::Else => ("Else", "else".to_string()),
         Token::LeftParen => ("LeftParen", "(".to_string()),
         Token::RightParen => ("RightParen", ")".to_string()),
         Token::LeftBrace => ("LeftBrace", "{".to_string()),
@@ -91,16 +96,24 @@ fn get_type_and_value(token: &Token) -> (&str, String) {
                 lexer::Number::Float(value) => ("Number:Float", value.to_string()),
             }
         }
-        Token::Operator(value) => ("Operator", value.clone().to_string()),
+        Token::Operator(value) => ("Operator", value.clone()),
         Token::LogicalOperator(value) => ("LogicalOperator", value.clone()),
         Token::Function => ("Function", "fn".to_string()),
         Token::If => ("If", "if".to_string()),
         Token::For => ("For", "for".to_string()),
         Token::Let => ("Let", "let".to_string()),
-        Token::While => ("While", "while".to_string()),
+        Token::Loop => ("Loop", "loop".to_string()),
         Token::Return => ("Return", "return".to_string()),
         Token::String(value) => ("String", value.clone()),
         Token::EOF => ("EOF", "".to_string()),
+        Token::Colon => ("Colon", ":".to_string()),
+        Token::TypeInt => ("TypeInt", "int".to_string()),
+        Token::TypeFloat => ("TypeFloat", "float".to_string()),
+        Token::TypeString => ("TypeString", "string".to_string()),
+        Token::TypeBool => ("TypeBool", "bool".to_string()),
+        Token::Const => ("Const", "const".to_string()),
+
+
     }
 }
 
