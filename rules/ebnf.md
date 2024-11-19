@@ -4,19 +4,19 @@ regex: "^\p{XID_Start}\p{XID_Continue}*"
 # Expressions
 expression -> <arithmetic> | <logic> | string
 
-arithmetic -> <term> {('+'|'-') <term>}*
-term -> <factor> {('*'|'/') <factor>}*
-factor -> <variable> {'**' <variable>}
+arithmetic -> {<term> ('+'|'-')}* <term> 
+term -> {<factor> ('*'|'/') }* <factor> 
+factor -> <variable> '**' <arithmetic>
 variable -> number | <identifier> | <function_call>
 
 logic -> {!} (<proposition> {('&'|'|') <proposition>}) | boolean
-proposition -> <variable> {('>' | '<' | '>=' | '<=' | '==') <variable>}+
+proposition -> {<variable> ('>' | '<' | '>=' | '<=' | '==') }+ <variable>
 
 For parentheses in arithmetic and logic expressions, separate what's within them from what's outside them, and parse separately with the given rules.
 
 # Statements
 
-statement -> <assignment> | <function_call> ';'
+statement -> (<assignment> | <function_call>) ';'
 
 assignment -> <declaration> '=' (<expression> | <tuple> | <array>)
 
