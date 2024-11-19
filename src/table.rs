@@ -3,7 +3,7 @@ struct Symbol {
     value: &str, // Lexeme
     // Unique to identifiers
     occurence: u32, // Line of first occurence
-    scope: u32,  // Type of identifier
+    scope: u32,  // Scope level
     use_type: &str, // Type of identifier, either declaration or reference
 }
 
