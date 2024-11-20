@@ -626,7 +626,6 @@ impl Sintax {
 
     fn parse_literal(&mut self) -> Expresion {
         let token = self.lexer.get_next_token();
-        // println!("debug {:?}", token);
 
         match token {
             Token::Number(start) => {
@@ -645,7 +644,6 @@ impl Sintax {
             }
         }
 
-        println!("debug {:?}", self.lexer.peek_token());
         match token {
             Token::Identifier(id) => match self.lexer.peek_token() {
                 Token::LeftParen => {

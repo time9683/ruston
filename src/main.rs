@@ -58,8 +58,9 @@ fn main() {
             analysis_lexical(&mut lexer);
         }
         1 => {
-            println!("Syntax Analysis");
-            println!("under construction");
+            let mut parser = Sintax::new(lexer);
+            parser.parse();
+            display_tree(&parser.program);
 
         }
         2 => {
