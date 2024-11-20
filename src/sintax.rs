@@ -4,7 +4,7 @@ use std::process::exit;
 use crate::lexer::{Lexer, Number, Token};
 
 #[derive(Debug)]
-enum DataType {
+pub enum DataType {
     Integer,
     Float,
     String,
@@ -17,7 +17,7 @@ enum DataType {
 
 
 #[derive(Debug)]
-enum Literal {
+pub enum Literal {
     Number(Number),
     String(String),
     Boolean(bool),
@@ -26,7 +26,7 @@ enum Literal {
 
 
 #[derive(Debug)]
-enum Expresion {
+pub enum Expresion {
     Literal(Literal),
     Identifier(String),
     Binary(Box<Expresion>, Token, Box<Expresion>),
@@ -62,7 +62,7 @@ impl Expresion {
 
 
 #[derive(Debug)]
-enum Statement {
+pub enum Statement {
     ExpressionStatement(Expresion),
     Declaration(String, Option<Expresion>),
     Assignment(Expresion, Expresion),
@@ -75,7 +75,7 @@ enum Statement {
 
 pub struct Sintax {
     lexer: Lexer,
-    program: Vec<Statement>,
+    pub program: Vec<Statement>,
 }
 
 impl Sintax {
@@ -92,7 +92,7 @@ impl Sintax {
             program.push(self.parse_statement());
         }
         self.program = program;
-        println!("{:?}", self.program);
+        // println!("{:?}", self.program);
     }
 
 
