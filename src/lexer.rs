@@ -64,14 +64,17 @@ pub enum Token {
     TypeBool, // datatype
     True ,
     False,
-    ArrowType// ->
-    
+    ArrowType, // ->
+    Range,
+    RangeInclusive,
 }
 
 
 impl  Display for Token {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
+            Token::Range => write!(f, ".."),
+            Token::RangeInclusive => write!(f, "..="),
             Token::ArrowType => write!(f, "->"),
             Token::In => write!(f, "in"),
             Token::False => write!(f, "false"),
@@ -182,17 +185,20 @@ impl Lexer {
 
         while let Some(c) = self.current_char() {
             if c.is_digit(10) {
-                number.push(c);
-                self.advance();
+            number.push(c);
+            self.advance();
             } else if c == '.' {
-                if is_float {
-                    break; // second dot found, stop parsing
-                }
-                is_float = true;
-                number.push(c);
-                self.advance();
+            if is_float {
+                break; // second dot found, stop parsing
+            }
+            if self.peek() == Some('.') {
+                break; // it's a range, not a float
+            }
+            is_float = true;
+            number.push(c);
+            self.advance();
             } else {
-                break;
+            break;
             }
         }
 
@@ -325,6 +331,17 @@ impl Lexer {
                         return Token::Semicolon;
                     }
                     '.' => {
+                        // print current
+                        if self.peek() == Some('.') {
+                            self.advance();
+                            if self.peek() == Some('=') {
+                                self.advance(); // consume .
+                                self.advance(); // consume =
+                                return Token::RangeInclusive;
+                            }
+                            self.advance();
+                            return Token::Range;
+                        }
                         self.advance();
                         return Token::Dot;
                     }

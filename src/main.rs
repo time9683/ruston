@@ -112,7 +112,8 @@ fn get_type_and_value(token: &Token) -> (&str, String) {
         Token::TypeString => ("TypeString", "string".to_string()),
         Token::TypeBool => ("TypeBool", "bool".to_string()),
         Token::Const => ("Const", "const".to_string()),
-
+        Token::Range => ("Range", "..".to_string()),
+        Token::RangeInclusive => ("RangeInclusive", "..=".to_string()),
 
     }
 }

@@ -36,6 +36,8 @@ enum Expresion {
     Index(Box<Expresion>, Box<Expresion>),
     Member(Box<Expresion>, String),
     TupleIndex(Box<Expresion>, usize),
+    Unary(Token, Box<Expresion>),
+    Range(Box<Expresion>, Box<Expresion>, bool), // bool indica si es inclusivo
 }
 
 impl Expresion {
@@ -602,23 +604,47 @@ impl Sintax {
 
     // this is for exponentiation and precedence
     fn parse_expoperator(&mut self) -> Expresion {
-        let mut left = self.parse_literal();
+        let mut left = self.parse_unary();
         while self.lexer.peek_token() == Token::Operator("**".to_string()) {
             let operator = self.lexer.get_next_token();
-            let right = self.parse_literal();
+            let right = self.parse_unary();
             left = Expresion::Binary(Box::new(left), operator, Box::new(right));
         }
         left
     }
 
+
+
+    fn parse_unary(&mut self) -> Expresion {
+        if self.lexer.peek_token() == Token::Operator("-".to_string()) || self.lexer.peek_token() == Token::Operator("!".to_string()) {
+            let operator = self.lexer.get_next_token();
+            let right = self.parse_unary(); // Recursively parse unary to handle multiple unary operators
+            return Expresion::Unary(operator, Box::new(right));
+        }
+        self.parse_literal()
+    }
+
     fn parse_literal(&mut self) -> Expresion {
         let token = self.lexer.get_next_token();
-        println!("debug {:?}", token);
+        // println!("debug {:?}", token);
 
-        if let  Some(literal) = Expresion::get_literal(token.clone()) {
-            return Expresion::Literal(literal);
+        match token {
+            Token::Number(start) => {
+                if self.lexer.peek_token() == Token::Range || self.lexer.peek_token() == Token::RangeInclusive {
+                    let inclusive = self.lexer.get_next_token() == Token::RangeInclusive;
+                    let end = self.parse_expresion();
+                    return Expresion::Range(Box::new(Expresion::Literal(Literal::Number(start))), Box::new(end), inclusive);
+                }
+
+                return Expresion::Literal(Literal::Number(start));
+            }
+            _ => {
+                if let Some(literal) = Expresion::get_literal(token.clone()) {
+                    return Expresion::Literal(literal);
+                }
+            }
         }
-        
+
         println!("debug {:?}", self.lexer.peek_token());
         match token {
             Token::Identifier(id) => match self.lexer.peek_token() {
@@ -688,9 +714,6 @@ impl Sintax {
                     return self.parse_expresion();
                 }
             }
-
-
-
             _ => {
                 let (line, col) = self.lexer.get_current_position();
                 eprintln!(
