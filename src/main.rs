@@ -1,8 +1,10 @@
 mod lexer;
 mod sintax;
+mod tree_display;
 use lexer::{Lexer,Token};
 use dialoguer::{theme::ColorfulTheme,Select};
 use sintax::Sintax;
+use tree_display::display_tree;
 
 
 fn main() {
@@ -28,6 +30,7 @@ fn main() {
     if args.len() == 2{
         let mut parser = Sintax::new(lexer);
         parser.parse();
+        display_tree(&parser.program);
         return;
     }
 

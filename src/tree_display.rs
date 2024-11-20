@@ -1,8 +1,10 @@
 use crate::sintax::{Statement, Expresion};
 
 pub fn display_tree(program: &Vec<Statement>) {
+  println!("Program:");
   for statement in program {
-    display_statement(statement, 0);
+    display_statement(statement, 2);
+    println!("{}", "-".repeat(40));
   }
 }
 
@@ -29,7 +31,7 @@ fn display_statement(statement: &Statement, indent: usize) {
       display_expression(cond, indent + 2);
       println!("{}Body:", indent_str);
       for stmt in body {
-        display_statement(stmt, indent + 2);
+        display_statement(stmt, indent + 4);
       }
       if let Some(else_stmt) = else_stmt {
         println!("{}Else:", indent_str);
@@ -46,14 +48,14 @@ fn display_statement(statement: &Statement, indent: usize) {
       println!("{}For: {}", indent_str, var);
       display_expression(range, indent + 2);
       for stmt in body {
-        display_statement(stmt, indent + 2);
+        display_statement(stmt, indent + 4);
       }
     }
     Statement::FnDeclaration(name, params, body) => {
       println!("{}Function Declaration: {}", indent_str, name);
       println!("{}Parameters: {:?}", indent_str, params);
       for stmt in body {
-        display_statement(stmt, indent + 2);
+        display_statement(stmt, indent + 4);
       }
     }
     Statement::Return(expr) => {
