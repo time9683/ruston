@@ -713,15 +713,18 @@ impl Sintax {
                 return self.parse_array();
             }
             Token::LeftParen => {
-                let current = self.lexer.save_position();
-                self.lexer.get_next_token(); // consume '('
                 if self.lexer.peek_token() == Token::RightParen {
-                    self.lexer.restore_position(current);
+                    // esto faltaria por arreglar 
                     return self.parse_tuple();
                 } else {
-                    self.lexer.restore_position(current);
-                    self.lexer.get_next_token(); // consume '('
-                    return self.parse_expresion();
+                    let exp =  self.parse_expresion();
+                    if self.lexer.get_next_token() == Token::RightParen {
+                        return exp;
+                    } else {
+                        let (line,col) =  self.lexer.get_current_position();
+                        eprintln!("Expected ')' at line {} col {}", line, col);
+                        exit(1);
+                    }
                 }
             }
             _ => {
