@@ -763,6 +763,7 @@ impl Sintax {
     }
 
 
+    // TODO! add type for array and tuple
     fn parse_type(&mut self) ->  Option<DataType> {
        
         if  self.lexer.peek_token() == Token::Colon {
