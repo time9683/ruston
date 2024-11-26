@@ -115,6 +115,7 @@ impl  Display for Token {
 
 
 
+#[derive(Debug)]
 pub struct LexerState {
     current: usize,
     line: usize,
