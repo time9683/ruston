@@ -473,8 +473,10 @@ impl Lexer {
     }
 
     pub fn peek_token(&mut self) -> Token {
-        let mut lexer = self.clone();
-        lexer.get_next_token()
+        let current = self.current;
+        let next_token = self.get_next_token();
+        self.current = current;
+        return next_token;
     }
 }
 
