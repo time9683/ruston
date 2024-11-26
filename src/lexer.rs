@@ -1,4 +1,4 @@
-use std::fmt::{write, Display};
+use std::{fmt::{write, Display}, os::linux::raw::stat};
 #[derive(Debug, PartialEq, PartialOrd,Clone)]
 pub enum Number {
     Float(f32),
@@ -115,6 +115,13 @@ impl  Display for Token {
 
 
 
+pub struct LexerState {
+    current: usize,
+    line: usize,
+    col: usize,
+    lookahead: Option<Token>,
+}
+
 
 
 
@@ -128,6 +135,7 @@ pub struct Lexer {
     current: usize,
     line: usize,
     col: usize,
+    lookahead: Option<Token>,
 }
 
 impl Lexer {
@@ -137,6 +145,7 @@ impl Lexer {
             current: 0,
             col: 1,  // column
             line: 1, // row
+            lookahead: None,
         }
     }
 
@@ -144,12 +153,21 @@ impl Lexer {
         (self.line, self.col)
     }
 
-    pub fn save_position(&self) -> (usize) {
-        self.current
+    pub fn save_position(&self) -> LexerState {
+        LexerState {
+            current: self.current,
+            line: self.line,
+            col: self.col,
+            lookahead: self.lookahead.clone(),
+        }
     }
 
-    pub fn restore_position(&mut self, position: usize) {
-        self.current = position;
+    pub fn restore_position(&mut self, state: LexerState) {
+        self.current = state.current;
+        self.line = state.line;
+        self.col = state.col;
+        self.lookahead = state.lookahead;
+        
     }
 
 
@@ -286,6 +304,11 @@ impl Lexer {
     }
 
     pub fn get_next_token(&mut self) -> Token {
+
+        if let Some(token) = self.lookahead.take() {
+            return token;
+        }
+
         loop {
             if let Some(c) = self.current_char() {
                 match c {
@@ -473,10 +496,12 @@ impl Lexer {
     }
 
     pub fn peek_token(&mut self) -> Token {
-        let current = self.current;
+        if let Some(token) = &self.lookahead {
+            return token.clone();
+        }
         let next_token = self.get_next_token();
-        self.current = current;
-        return next_token;
+        self.lookahead = Some(next_token.clone());
+        return next_token
     }
 }
 

@@ -123,7 +123,7 @@ impl Sintax {
             Token::Identifier(_) => {
                 // this is a hack to check all the next tokens without consuming them
                 let current = self.lexer.save_position();
-                self.lexer.get_next_token();
+                self.lexer.get_next_token(); // consume identifier
                 match self.lexer.peek_token() {
                     Token::Equal => {
                         self.lexer.restore_position(current);
@@ -451,9 +451,11 @@ impl Sintax {
 
 
     fn parse_assignment(&mut self) -> Statement {
-        let id = match self.lexer.get_next_token() {
+        let token = self.lexer.get_next_token();
+        let id = match token{
             Token::Identifier(id) => id,
             _ => {
+                println!("wtf bro {}",token);
                 let (line,col) =  self.lexer.get_current_position();
                 eprintln!("Expected identifier at line {} col {}", line, col);
                 exit(1);
