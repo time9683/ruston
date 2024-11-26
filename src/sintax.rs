@@ -607,7 +607,7 @@ impl Sintax {
         let mut left = self.parse_expoperator();
         while self.lexer.peek_token() == Token::Operator("*".to_string()) || self.lexer.peek_token() == Token::Operator("/".to_string()) || self.lexer.peek_token() == Token::Operator ("%".to_string()) {
             let operator = self.lexer.get_next_token();
-            let right = self.parse_literal();
+            let right = self.parse_expoperator();
             left = Expresion::Binary(Box::new(left), operator, Box::new(right));
         }
 
