@@ -68,18 +68,7 @@ fn main() {
 
         }
         2 => {
-            // let mut table = SymbolTable::new();
-            // table.insert(Symbol::variable("x".to_string(), 1, 1, UseType::Declaration, DataType::Integer)); 
-            // table.insert(Symbol::variable("y".to_string(), 2, 1, UseType::Declaration, DataType::Float));
-        
-            // table.enter_scope();
-            // table.insert(Symbol::variable("x".to_string(), 3, 2, UseType::Declaration, DataType::Boolean));
-            // // table.exit_scope();
-        
-            // table.exit_scope();
-            // table.enter_scope();
-
-            // println!("{:#?}", table.lookup("x"));
+            
         }
         _ => {
             println!("Invalid selection");
