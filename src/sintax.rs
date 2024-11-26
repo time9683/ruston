@@ -1,5 +1,6 @@
 use core::panic;
 use std::process::exit;
+use crate::visitor::{Visitable, Visitor};
 use crate::{Symbol, SymbolTable, UseType};
 use crate::lexer::{Lexer, Number, Token};
 
@@ -24,6 +25,19 @@ pub enum Literal {
 }
 
 
+impl  Visitable for Literal{
+    fn  accept(&self, visitor: &mut dyn Visitor) -> String {
+        match  self {
+            Literal::Number(number) => visitor.visit_number(number),
+            Literal::String(string) => visitor.visit_string(string),
+            Literal::Boolean(boolean) => visitor.visit_boolean(boolean),
+        }
+    }
+}
+
+
+
+
 
 #[derive(Debug)]
 pub enum Expresion {
@@ -40,6 +54,8 @@ pub enum Expresion {
     Range(Box<Expresion>, Box<Expresion>, bool), // bool indica si es inclusivo
 }
 
+
+
 impl Expresion {
     // a function take a token and return the literal value of the token, if the token is not a literal return None
     fn get_literal(token: Token) -> Option<Literal> {
@@ -55,6 +71,22 @@ impl Expresion {
         }
     }
     
+}
+
+impl Visitable for Expresion{
+    
+        fn  accept(&self, visitor: &mut dyn Visitor) -> String {
+            match self {
+                Expresion::Literal(literal) => visitor.visit_literal(literal),
+                Expresion::Identifier(identifier) => visitor.visit_identifier(identifier),
+                Expresion::Binary(left, operator, right) => visitor.visit_binary(left, operator, right),
+                Expresion::FnCall(name, args) => visitor.visit_fn_call(name, args),
+                Expresion::Array(elements) => visitor.visit_array(elements),
+                Expresion::Unary(operator, operand) => visitor.visit_unary(operator, operand),
+                Expresion::Range(start, end, inclusive) => visitor.visit_range(start, end, *inclusive),
+                _ => {panic!("no implementado");}
+            }
+        }
 }
 
 
@@ -74,6 +106,23 @@ pub enum Statement {
 }
 
 
+impl Visitable for  Statement{
+
+    fn  accept(&self, visitor: &mut dyn Visitor) -> String {
+        match self {
+            Statement::ExpressionStatement(expression) => visitor.visit_expression_statement(expression),
+            Statement::Declaration(id, expression) => visitor.visit_declaration(id, expression),
+            Statement::Assignment(left, right) => visitor.visit_assignment(left, right),
+            Statement::If(condition, block, else_block, scope_id) => visitor.visit_if(condition, block, else_block, *scope_id),
+            Statement::Loop(block, scope_id) => visitor.visit_loop(block, *scope_id),
+            Statement::For(id, exp, block, scope_id) => visitor.visit_for(id, exp, block, *scope_id),
+            Statement::FnDeclaration(id, params, block, scope_id) => visitor.visit_fn_declaration(id, params, block, *scope_id),
+            Statement::Return(exp) => visitor.visit_return(exp),
+        }
+    }
+
+
+}
 
 
 
@@ -814,3 +863,5 @@ impl Sintax {
     }
 
 }
+
+

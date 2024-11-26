@@ -2,11 +2,15 @@ mod lexer;
 mod sintax;
 mod table;
 mod tree_display;
+mod visitor;
+mod generator;
 use lexer::{Lexer,Token};
 use dialoguer::{theme::ColorfulTheme,Select};
 use sintax::{DataType, Sintax, Statement};
 use tree_display::display_tree;
 use table::{Symbol,SymbolTable, UseType};
+
+use generator::PythonGenerator;
 
 
 fn main() {
@@ -32,9 +36,11 @@ fn main() {
     if args.len() == 2{
         let mut parser = Sintax::new(lexer.clone());
         parser.parse();
-        display_tree(&parser.program);
-        println!("{:#?}", parser.table);
-
+        // display_tree(&parser.program);
+        // println!("{:#?}", parser.table);
+        let mut generator = PythonGenerator::new(parser.program, parser.table);
+        let code = generator.generate();
+        println!("{}", code);
         return
     }
 
