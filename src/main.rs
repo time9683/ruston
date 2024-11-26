@@ -1,10 +1,12 @@
 mod lexer;
 mod sintax;
+mod table;
 mod tree_display;
 use lexer::{Lexer,Token};
 use dialoguer::{theme::ColorfulTheme,Select};
-use sintax::Sintax;
+use sintax::{DataType, Sintax, Statement};
 use tree_display::display_tree;
+use table::{Symbol,SymbolTable, UseType};
 
 
 fn main() {
@@ -28,10 +30,12 @@ fn main() {
     let mut lexer = Lexer::new(source);
 
     if args.len() == 2{
-        let mut parser = Sintax::new(lexer);
+        let mut parser = Sintax::new(lexer.clone());
         parser.parse();
         display_tree(&parser.program);
-        return;
+        println!("{:#?}", parser.table);
+
+        return
     }
 
 
@@ -64,8 +68,18 @@ fn main() {
 
         }
         2 => {
-            println!("Semantic Analysis");
-            println!("under construction");
+            // let mut table = SymbolTable::new();
+            // table.insert(Symbol::variable("x".to_string(), 1, 1, UseType::Declaration, DataType::Integer)); 
+            // table.insert(Symbol::variable("y".to_string(), 2, 1, UseType::Declaration, DataType::Float));
+        
+            // table.enter_scope();
+            // table.insert(Symbol::variable("x".to_string(), 3, 2, UseType::Declaration, DataType::Boolean));
+            // // table.exit_scope();
+        
+            // table.exit_scope();
+            // table.enter_scope();
+
+            // println!("{:#?}", table.lookup("x"));
         }
         _ => {
             println!("Invalid selection");

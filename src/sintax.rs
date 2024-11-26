@@ -1,6 +1,6 @@
 use core::panic;
 use std::process::exit;
-
+use crate::{Symbol, SymbolTable, UseType};
 use crate::lexer::{Lexer, Number, Token};
 
 #[derive(Debug)]
@@ -66,16 +66,23 @@ pub enum Statement {
     ExpressionStatement(Expresion),
     Declaration(String, Option<Expresion>),
     Assignment(Expresion, Expresion),
-    If(Expresion, Vec<Statement>, Option< Box<Statement>>),
-    Loop(Vec<Statement>),
-    For(String,Expresion,Vec<Statement>),
-    FnDeclaration(String, Vec<String>, Vec<Statement>),
+    If(Expresion, Vec<Statement>, Option< Box<Statement>>, u32),
+    Loop(Vec<Statement>, u32),
+    For(String,Expresion,Vec<Statement>, u32),
+    FnDeclaration(String, Vec<String>, Vec<Statement>, u32),
     Return(Option<Expresion>),
 }
+
+
+
+
+
 
 pub struct Sintax {
     lexer: Lexer,
     pub program: Vec<Statement>,
+    pub table: SymbolTable,
+    current_scope_id: u32,
 }
 
 impl Sintax {
@@ -83,6 +90,8 @@ impl Sintax {
         Sintax {
             lexer,
             program: Vec::new(),
+            table: SymbolTable::new(),
+            current_scope_id: 0,
         }
     }
 
@@ -258,23 +267,20 @@ impl Sintax {
         // check if the next token is a left paren
         if self.lexer.get_next_token() == Token::LeftParen {
             let mut params = Vec::new();
+            let mut param_types = Vec::new();
             if self.lexer.peek_token() != Token::RightParen {
                 loop {
                     match self.lexer.get_next_token() {
                         Token::Identifier(id) => {
-                            
                             let data_type = self.parse_type();    
                             if data_type.is_none(){
                                 let (line,col) =  self.lexer.get_current_position();
                                 eprintln!("Expected data type at line {} col {}", line, col);
                                 exit(1);
                             }
-                        
-                        
-                            params.push(id)
-                        
+                            param_types.push(data_type.unwrap());
+                            params.push(id);
                         }
-                            ,
                         _ => {
                             let (line,col) =  self.lexer.get_current_position();
                             eprintln!("Expected identifier at line {} col {}", line, col);
@@ -302,24 +308,33 @@ impl Sintax {
 
             // check the return type of the function
             let return_type = self.parse_return_type();
-            if  return_type.is_none(){
+            if return_type.is_none() {
                 let (line,col) =  self.lexer.get_current_position();
                 eprintln!("Expected '-> type' at line {} col {}", line, col);
-                exit(1);
+                exit(1);z
             }
 
+            let (line,_) = self.lexer.get_current_position();
+            self.table.insert(Symbol::function(
+                id.clone(),
+                line,
+                0,
+                UseType::Declaration,
+                return_type,
+                param_types,
+            ));
+
+            let scope_id = self.generate_scope_id();
+            self.table.create_scope(scope_id);
+            self.table.enter_scope(scope_id);
             let block = self.parse_block();
-            return Statement::FnDeclaration(id, params, block);
+            self.table.exit_scope();
+            return Statement::FnDeclaration(id, params, block, scope_id);
         } else {
             let (line,col) =  self.lexer.get_current_position();
             eprintln!("Expected '(' at line {} col {}", line, col);
             exit(1);
         }
-
-
-
-
-
     }
 
 
@@ -342,10 +357,12 @@ impl Sintax {
                     exit(1);
                 }
 
-
-
+                let scope_id = self.generate_scope_id();
+                self.table.create_scope(scope_id);
+                self.table.enter_scope(scope_id);
                 let block = self.parse_block();
-                return Statement::For(id, exp, block);
+                self.table.exit_scope();
+                return Statement::For(id, exp, block, scope_id);
             }else{
                 let (line,col) =  self.lexer.get_current_position();
                 eprintln!("Expected 'in' at line {} col {}", line, col);
@@ -363,9 +380,12 @@ impl Sintax {
 
     fn  parse_loop(&mut self) -> Statement{
         self.lexer.get_next_token(); // consume loop
+        let scope_id = self.generate_scope_id();
+        self.table.create_scope(scope_id);
+        self.table.enter_scope(scope_id);
         let block =  self.parse_block();
-
-        Statement::Loop(block)
+        self.table.exit_scope();
+        Statement::Loop(block, scope_id)
     }
 
     fn parse_if(&mut self) -> Statement {
@@ -373,25 +393,30 @@ impl Sintax {
         if self.lexer.get_next_token() == Token::LeftParen { // consume (
             let condition = self.parse_expresion();  // consume inner expresion
             if self.lexer.get_next_token() == Token::RightParen { // consume )  
+                let scope_id = self.generate_scope_id();
+                self.table.create_scope(scope_id);
+                self.table.enter_scope(scope_id);
                 let block = self.parse_block();
+                self.table.exit_scope();
                 let else_block = if self.lexer.peek_token() == Token::Else {
                     self.lexer.get_next_token();
                     if self.lexer.peek_token() == Token::If {
                         Some(Box::new(self.parse_if()))
                     } else {
-                        Some(
-                            Box::new(
-                                
-                            Statement::If(
+                        self.table.enter_scope(scope_id);
+                        let else_block = Some(Box::new(Statement::If(
                             Expresion::Literal(Literal::Boolean(true)),
                             self.parse_block(),
                             None,
-                        )))
+                            scope_id,
+                        )));
+                        self.table.exit_scope();
+                        else_block
                     }
                 } else {
                     None
                 };
-                return Statement::If(condition, block, else_block);
+                return Statement::If(condition, block, else_block, scope_id);
             } else {
                 let (line, col) = self.lexer.get_current_position();
                 eprintln!("Expected ')' at line {} col {}", line, col);
@@ -454,52 +479,37 @@ impl Sintax {
 
 
     fn parse_declaration(&mut self) -> Statement {
-        // if is let
         let is_const: bool =  if  self.lexer.get_next_token() == Token::Const  { true }  else  {false};
-        
-
-
         let id = self.lexer.get_next_token();
-
 
         match id {
             Token::Identifier(id) => {
-
-                //  check if the variable has a data type 
-                // 
                 let data_type = self.parse_type();
-
-                // check if the variable has an expresion
                 let expresion =  if self.lexer.peek_token() == Token::Equal {
                     self.lexer.get_next_token(); // consume '='
                      Some(self.parse_expresion())
-                }else{
+                } else {
                     None
                 };
 
-  
-
-                    if (is_const && expresion.is_none()) || (is_const && data_type.is_none()) {
-                        let (line, col) = self.lexer.get_current_position();
-                        eprintln!(
-                            "Syntax Error [Line {}, Column {}]: Const declarations must include both a type annotation and an initial value.",
-                            line, col
-                        );
-                        exit(1);
-                    }
+                if (is_const && expresion.is_none()) || (is_const && data_type.is_none()) {
+                    let (line, col) = self.lexer.get_current_position();
+                    eprintln!(
+                        "Syntax Error [Line {}, Column {}]: Const declarations must include both a type annotation and an initial value.",
+                        line, col
+                    );
+                    exit(1);
+                }
                 
-
-                    if self.lexer.get_next_token() == Token::Semicolon {
-                        println!("se ha declarado la variable {} de tipo {:?} y con el valor {:?}", id, data_type, expresion);
-                        return Statement::Declaration(id, expresion);
-                    } else {
-                        let (line,col) =  self.lexer.get_current_position();
-                        eprintln!("Expected semicolon at line {} col {}", line, col);
-                        exit(1);
-                    }
-                
+                let (line,col) =  self.lexer.get_current_position();
+                if self.lexer.get_next_token() == Token::Semicolon {
+                    self.table.insert(Symbol::variable(id.clone(), line, 0, UseType::Declaration, data_type));
+                    return Statement::Declaration(id, expresion);
+                } else {
+                    eprintln!("Expected semicolon at line {} col {}", line, col);
+                    exit(1);
+                }
             }
-            // if is not an identifier
             _ => {
                 let (line,col) =  self.lexer.get_current_position();
                 let const_str = if is_const { "const" } else { "let" };
@@ -792,5 +802,9 @@ impl Sintax {
         }
     }
 
+    fn generate_scope_id(&mut self) -> u32 {
+        self.current_scope_id += 1;
+        self.current_scope_id
+    }
 
 }

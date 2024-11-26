@@ -3,129 +3,127 @@ use crate::sintax::{Statement, Expresion};
 pub fn display_tree(program: &Vec<Statement>) {
   println!("Program:");
   for statement in program {
-    display_statement(statement, 2);
-    println!("{}", "-".repeat(40));
+    display_statement(statement, 0, true);
   }
 }
 
-fn display_statement(statement: &Statement, indent: usize) {
+fn display_statement(statement: &Statement, indent: usize, is_last: bool) {
   let indent_str = " ".repeat(indent);
+  let branch = if is_last { "└── " } else { "├── " };
   match statement {
     Statement::ExpressionStatement(expr) => {
-      println!("{}ExpressionStatement:", indent_str);
-      display_expression(expr, indent + 2);
+      println!("{}{}ExpressionStatement:", indent_str, branch);
+      display_expression(expr, indent + 4, true);
     }
     Statement::Declaration(name, expr) => {
-      println!("{}Declaration: {}", indent_str, name);
+      println!("{}{}Declaration: {}", indent_str, branch, name);
       if let Some(expr) = expr {
-        display_expression(expr, indent + 2);
+        display_expression(expr, indent + 4, true);
       }
     }
     Statement::Assignment(lhs, rhs) => {
-      println!("{}Assignment:", indent_str);
-      display_expression(lhs, indent + 2);
-      display_expression(rhs, indent + 2);
+      println!("{}{}Assignment:", indent_str, branch);
+      display_expression(lhs, indent + 4, false);
+      display_expression(rhs, indent + 4, true);
     }
-    Statement::If(cond, body, else_stmt) => {
-      println!("{}If:", indent_str);
-      display_expression(cond, indent + 2);
-      println!("{}Body:", indent_str);
-      for stmt in body {
-        display_statement(stmt, indent + 4);
+    Statement::If(cond, body, else_stmt,_) => {
+      println!("{}{}If:", indent_str, branch);
+      display_expression(cond, indent + 4, false);
+      println!("{}    Body:", indent_str);
+      for (i, stmt) in body.iter().enumerate() {
+        display_statement(stmt, indent + 8, i == body.len() - 1);
       }
       if let Some(else_stmt) = else_stmt {
-        println!("{}Else:", indent_str);
-        display_statement(else_stmt, indent + 2);
+        println!("{}    Else:", indent_str);
+        display_statement(else_stmt, indent + 4, true);
       }
     }
-    Statement::Loop(body) => {
-      println!("{}Loop:", indent_str);
-      for stmt in body {
-        display_statement(stmt, indent + 2);
+    Statement::Loop(body,_) => {
+      println!("{}{}Loop:", indent_str, branch);
+      for (i, stmt) in body.iter().enumerate() {
+        display_statement(stmt, indent + 4, i == body.len() - 1);
       }
     }
-    Statement::For(var, range, body) => {
-      println!("{}For: {}", indent_str, var);
-      display_expression(range, indent + 2);
-      for stmt in body {
-        display_statement(stmt, indent + 4);
+    Statement::For(var, range, body, _) => {
+      println!("{}{}For: {}", indent_str, branch, var);
+      display_expression(range, indent + 4, false);
+      for (i, stmt) in body.iter().enumerate() {
+        display_statement(stmt, indent + 8, i == body.len() - 1);
       }
     }
-    Statement::FnDeclaration(name, params, body) => {
-      println!("{}Function Declaration: {}", indent_str, name);
-      println!("{}Parameters: {:?}", indent_str, params);
-      for stmt in body {
-        display_statement(stmt, indent + 4);
+    Statement::FnDeclaration(name, params, body, _) => {
+      println!("{}{}Function Declaration: {}", indent_str, branch, name);
+      println!("{}    Parameters: {:?}", indent_str, params);
+      for (i, stmt) in body.iter().enumerate() {
+        display_statement(stmt, indent + 8, i == body.len() - 1);
       }
     }
     Statement::Return(expr) => {
-      println!("{}Return:", indent_str);
+      println!("{}{}Return:", indent_str, branch);
       if let Some(expr) = expr {
-        display_expression(expr, indent + 2);
+        display_expression(expr, indent + 4, true);
       }
     }
   }
 }
 
-fn display_expression(expr: &Expresion, indent: usize) {
+fn display_expression(expr: &Expresion, indent: usize, is_last: bool) {
   let indent_str = " ".repeat(indent);
+  let branch = if is_last { "└── " } else { "├── " };
   match expr {
     Expresion::Literal(lit) => {
-      println!("{}Literal: {:?}", indent_str, lit);
+      println!("{}{}Literal: {:?}", indent_str, branch, lit);
     }
     Expresion::Identifier(name) => {
-      println!("{}Identifier: {}", indent_str, name);
+      println!("{}{}Identifier: {}", indent_str, branch, name);
     }
     Expresion::Binary(lhs, op, rhs) => {
-      println!("{}Binary Expression:", indent_str);
-      display_expression(lhs, indent + 2);
-      println!("{}Operator: {:?}", indent_str, op);
-      display_expression(rhs, indent + 2);
+      println!("{}{}Binary Expression:", indent_str, branch);
+      display_expression(lhs, indent + 4, false);
+      println!("{}    Operator: {:?}", indent_str, op);
+      display_expression(rhs, indent + 4, true);
     }
     Expresion::FnCall(name, args) => {
-      println!("{}Function Call: {}", indent_str, name);
-      for arg in args {
-        display_expression(arg, indent + 2);
+      println!("{}{}Function Call: {}", indent_str, branch, name);
+      for (i, arg) in args.iter().enumerate() {
+        display_expression(arg, indent + 4, i == args.len() - 1);
       }
     }
     Expresion::Tuple(elements) => {
-      println!("{}Tuple:", indent_str);
-      for element in elements {
-        display_expression(element, indent + 2);
+      println!("{}{}Tuple:", indent_str, branch);
+      for (i, element) in elements.iter().enumerate() {
+        display_expression(element, indent + 4, i == elements.len() - 1);
       }
     }
     Expresion::Array(elements) => {
-      println!("{}Array:", indent_str);
-      for element in elements {
-        display_expression(element, indent + 2);
+      println!("{}{}Array:", indent_str, branch);
+      for (i, element) in elements.iter().enumerate() {
+        display_expression(element, indent + 4, i == elements.len() - 1);
       }
     }
     Expresion::Index(array, index) => {
-      println!("{}Index:", indent_str);
-      display_expression(array, indent + 2);
-      display_expression(index, indent + 2);
+      println!("{}{}Index:", indent_str, branch);
+      display_expression(array, indent + 4, false);
+      display_expression(index, indent + 4, true);
     }
     Expresion::Member(expr, member) => {
-      println!("{}Member Access: {}", indent_str, member);
-      display_expression(expr, indent + 2);
+      println!("{}{}Member Access: {}", indent_str, branch, member);
+      display_expression(expr, indent + 4, true);
     }
     Expresion::TupleIndex(expr, index) => {
-      println!("{}Tuple Index: {}", indent_str, index);
-      display_expression(expr, indent + 2);
+      println!("{}{}Tuple Index: {}", indent_str, branch, index);
+      display_expression(expr, indent + 4, true);
     }
     Expresion::Unary(op, expr) => {
-      println!("{}Unary Expression:", indent_str);
-      println!("{}Operator: {:?}", indent_str, op);
-      display_expression(expr, indent + 2);
+      println!("{}{}Unary Expression:", indent_str, branch);
+      println!("{}    Operator: {:?}", indent_str, op);
+      display_expression(expr, indent + 4, true);
     }
     Expresion::Range(start, end, inclusive) => {
-      println!("{}Range:", indent_str);
-      display_expression(start, indent + 2);
-      display_expression(end, indent + 2);
-      println!("{}Inclusive: {}", indent_str, inclusive);
+      println!("{}{}Range:", indent_str, branch);
+      display_expression(start, indent + 4, false);
+      display_expression(end, indent + 4, false);
+      println!("{}    Inclusive: {}", indent_str, inclusive);
     }
   }
 }
-
-
-
