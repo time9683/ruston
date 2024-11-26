@@ -1,4 +1,4 @@
-use std::{fmt::{write, Display}};
+use std::fmt:: Display;
 #[derive(Debug, PartialEq, PartialOrd,Clone)]
 pub enum Number {
     Float(f32),
