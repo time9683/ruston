@@ -311,7 +311,7 @@ impl Sintax {
             if return_type.is_none() {
                 let (line,col) =  self.lexer.get_current_position();
                 eprintln!("Expected '-> type' at line {} col {}", line, col);
-                exit(1);z
+                exit(1);
             }
 
             let (line,_) = self.lexer.get_current_position();
