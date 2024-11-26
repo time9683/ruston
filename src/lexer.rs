@@ -144,7 +144,7 @@ impl Lexer {
         (self.line, self.col)
     }
 
-    pub fn save_position(&self) -> (usize) {
+    pub fn save_position(&self) -> usize {
         self.current
     }
 
