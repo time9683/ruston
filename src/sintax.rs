@@ -11,7 +11,7 @@ pub enum DataType {
     String,
     Boolean,
     Void,
-    Array(Box<DataType>),
+    Array(Box<DataType>,i32),
     Tuple(Vec<DataType>),
     identifier(String),
 }
@@ -795,26 +795,25 @@ impl Sintax {
     }
 
 
-    // TODO! add type for array and tuple
+    // (u32,u32) _ [u32,usize] 
+
+    // TODO! add type for  tuple
     fn parse_type(&mut self) ->  Option<DataType> {
        
         if  self.lexer.peek_token() == Token::Colon {
             self.lexer.get_next_token(); // consume ':'
-            match self.lexer.get_next_token() {
-                Token::TypeInt => Some(DataType::Integer),
-                Token::TypeFloat => Some(DataType::Float),
-                Token::TypeString => Some(DataType::String),
-                Token::TypeBool => Some(DataType::Boolean),
-                _ => {
-                    let (line,col) =  self.lexer.get_current_position();
-                    eprintln!("Expected data type at line {} col {}", line, col);
-                    exit(1);
-                }
-            }
+            return Some(self.get_unit_type());
+
         } else {
             None
         }
     }
+
+
+    
+
+
+
 
     fn parse_return_type(&mut self) ->  Option<DataType> {
         if  self.lexer.peek_token() == Token::ArrowType {
@@ -834,6 +833,79 @@ impl Sintax {
             None
         }
     }
+
+
+    fn get_unit_type(&mut self) -> DataType{
+        match self.lexer.get_next_token() {
+            Token::TypeInt => DataType::Integer,
+            Token::TypeFloat => DataType::Float,
+            Token::TypeString => DataType::String,
+            Token::TypeBool => DataType::Boolean,
+            Token::LeftBracket => {
+                let  data_type = self.get_unit_type();
+                if self.lexer.get_next_token() == Token::Comma{
+                    let size = self.lexer.get_next_token();
+                    if let Token::Number(Number::Integer(n)) = size{
+
+                        if self.lexer.get_next_token() == Token::RightBracket{
+
+                            return DataType::Array(Box::new(data_type),n);
+                        }else{
+                            let (line,col) =  self.lexer.get_current_position();
+                            eprintln!("Expected '[' at line {} col {}", line, col);
+                            exit(1);
+
+                        }
+
+
+                    }else{
+                    let (line,col) =  self.lexer.get_current_position();
+                    eprintln!("Expected data type at line {} col {}", line, col);
+                    exit(1);
+                }
+
+            }else{
+                let (line,col) =  self.lexer.get_current_position();
+                eprintln!("Expected ',' at line {} col {}", line, col);
+                exit(1);
+         }
+        }
+        ,
+            Token::LeftParen =>{
+                let mut types: Vec<DataType> = vec![];
+
+                let mut data_type :DataType;
+                while self.lexer.peek_token() != Token::RightParen{
+
+                    data_type = self.get_unit_type();
+                    types.push(data_type);
+
+                    if self.lexer.peek_token() == Token::Comma {
+                        self.lexer.get_next_token();
+                    }
+
+
+                }
+
+                if self.lexer.get_next_token() != Token::RightParen{
+                    let (line,col) =  self.lexer.get_current_position();
+                    eprintln!("Expected ) at line {} col {}", line, col);
+                    exit(1);
+                }
+                
+                return DataType::Tuple(types);
+            }
+            _ => {
+                let (line,col) =  self.lexer.get_current_position();
+                eprintln!("Expected data type at line {} col {}", line, col);
+                exit(1);
+            }
+        }
+
+
+    }
+
+
 
     fn generate_scope_id(&mut self) -> u32 {
         self.current_scope_id += 1;
