@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 
 use crate::sintax::DataType;
+use std::fmt;
 
 #[derive(Debug)]
 pub enum UseType {
@@ -19,13 +20,37 @@ pub enum SymbolKind {
     },
 }
 
+impl fmt::Display for SymbolKind {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            SymbolKind::Variable { data_type } => {
+                match data_type {
+                    Some(data) =>{
+                        write!(f, "{:?}", data)
+                    },
+                    None =>{
+                        write!(f,"no defined")
+                    }
+            
+
+                }
+            }
+            SymbolKind::Function { data_type, parameters } => {
+                write!(f, "Function: {:?} with parameters {:?}", data_type, parameters)
+            }
+        }
+    }
+}
+
+
+
 #[derive(Debug)]
 pub struct Symbol {
-    value: String, // Lexeme
-    occurrence: usize, // Line of first occurrence
-    scope: u32,  // Scope level
-    use_type: UseType, // Type of identifier, either declaration or reference
-    kind: SymbolKind, // Kind of symbol, either variable or function
+    pub value: String, // Lexeme
+    pub  occurrence: usize, // Line of first occurrence
+     pub scope: u32,  // Scope level
+     pub use_type: UseType, // Type of identifier, either declaration or reference
+     pub   kind: SymbolKind, // Kind of symbol, either variable or function
 }
 
 impl Symbol {
@@ -52,7 +77,7 @@ impl Symbol {
 
 #[derive(Debug)]
 pub struct SymbolTable {
-    all_scopes: HashMap<u32, HashMap<String, Symbol>>, // Cambiar a HashMap con ID de scope
+    pub all_scopes: HashMap<u32, HashMap<String, Symbol>>, // Cambiar a HashMap con ID de scope
     active_scopes: Vec<u32>, // Pila de IDs de scopes activos
 }
 
