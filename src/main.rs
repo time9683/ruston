@@ -10,7 +10,7 @@ use sintax::{DataType, Sintax, Statement};
 use tree_display::display_tree;
 use table::{Symbol,SymbolTable, UseType};
 
-use generator::PythonGenerator;
+use generator:: PythonGenerator;
 
 
 fn main() {

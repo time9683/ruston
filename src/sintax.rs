@@ -1,4 +1,4 @@
-use core::panic;
+use core::{num, panic};
 use std::process::exit;
 use crate::visitor::{Visitable, Visitor};
 use crate::{Symbol, SymbolTable, UseType};
@@ -84,10 +84,15 @@ impl Visitable for Expresion{
                 Expresion::Array(elements) => visitor.visit_array(elements),
                 Expresion::Unary(operator, operand) => visitor.visit_unary(operator, operand),
                 Expresion::Range(start, end, inclusive) => visitor.visit_range(start, end, *inclusive),
-                _ => {panic!("no implementado");}
+                Expresion::Tuple(elements) => visitor.visit_tuple(elements),
+                Expresion::Index(array, index) => visitor.visit_index(array, index),
+                Expresion::Member(object, member) => visitor.visit_member(object, member),
+                Expresion::TupleIndex(tuple, index) => visitor.visit_tuple_index(tuple, *index),
+                
+                }
             }
         }
-}
+
 
 
 
@@ -219,8 +224,6 @@ impl Sintax {
 
     fn parse_tuple(&mut self) -> Expresion {
         let mut elements = Vec::new();
-        let x = self.lexer.peek_token();
-        println!("{:?}", x);
         while self.lexer.peek_token() != Token::RightParen {
             elements.push(self.parse_expresion());
             match self.lexer.peek_token() {
@@ -710,48 +713,9 @@ impl Sintax {
                 Token::LeftParen => {
                     return self.parse_fncall(id);
                 }
-                Token::Dot => {
-                    self.lexer.get_next_token();
+                Token::Dot | Token::LeftBracket => {
                     let mut expr = Expresion::Identifier(id);
-                    loop {
-                        match self.lexer.get_next_token() {
-                            Token::Identifier(member) => {
-                                expr = Expresion::Member(Box::new(expr), member);
-                            }
-                            Token::Number(Number::Integer(index)) => {
-                                expr = Expresion::TupleIndex(Box::new(expr), index as usize);
-                            }
-                            _ => {
-                                let (line, col) = self.lexer.get_current_position();
-                                eprintln!("Expected identifier or number at line {} col {}", line, col);
-                                exit(1);
-                            }
-                        }
-                        if self.lexer.peek_token() != Token::Dot {
-                            break;
-                        }
-                        self.lexer.get_next_token(); // consume '.'
-                    }
-                    return expr;
-                }
-
-                Token::LeftBracket => {
-                    self.lexer.get_next_token();
-                    let mut expr = Expresion::Identifier(id);
-                    loop {
-                        let index = self.parse_expresion();
-                        if self.lexer.get_next_token() == Token::RightBracket {
-                            expr = Expresion::Index(Box::new(expr), Box::new(index));
-                            if self.lexer.peek_token() != Token::LeftBracket {
-                                break;
-                            }
-                            self.lexer.get_next_token(); // consume '[' for next index
-                        } else {
-                            let (line, col) = self.lexer.get_current_position();
-                            eprintln!("Expected ']' at line {} col {}", line, col);
-                            exit(1);
-                        }
-                    }
+                    expr = self.parse_index_arr_tupla(expr);
                     return expr;
                 }
                 _ => {
@@ -762,8 +726,22 @@ impl Sintax {
                 return self.parse_array();
             }
             Token::LeftParen => {
-                if self.lexer.peek_token() == Token::RightParen {
-                    // esto faltaria por arreglar 
+
+                let state = self.lexer.save_position();
+                let mut is_tuple = false;
+
+                while self.lexer.peek_token() != Token::RightParen {
+                    if self.lexer.peek_token() == Token::Comma {
+                        is_tuple = true;
+                        break;
+                    }
+                    self.lexer.get_next_token();
+                }
+
+                self.lexer.restore_position(state);
+
+
+                if is_tuple {
                     return self.parse_tuple();
                 } else {
                     let exp =  self.parse_expresion();
@@ -806,7 +784,7 @@ impl Sintax {
                         break;
                     }
                     _ => {
-                        eprintln!("erga la cagaste feo");
+                        eprintln!("bad call function");
                         exit(1);
                     }
                 }
@@ -860,6 +838,58 @@ impl Sintax {
     fn generate_scope_id(&mut self) -> u32 {
         self.current_scope_id += 1;
         self.current_scope_id
+    }
+
+    // this have to allow to parse a[0].1 or a.1[0]
+    fn parse_index_arr_tupla(&mut self, mut expr: Expresion) -> Expresion {
+        loop {
+            match self.lexer.peek_token() {
+                Token::Dot => {
+                    self.lexer.get_next_token(); // consume '.'
+                    match self.lexer.get_next_token() {
+                        Token::Number(Number::Integer(index)) => {
+                            expr = Expresion::TupleIndex(Box::new(expr), index as usize);
+                        }
+                        Token::Identifier(member) => {
+                            expr = Expresion::Member(Box::new(expr), member);
+                        },
+                        // the number can be float you have to split an create two tupla index
+                        Token::Number(Number::Float(indexes)) =>{
+                            let numbers = indexes.to_string();
+                            let parts: Vec<&str> = numbers.split('.').collect();
+                            if parts.len() < 2 {
+                                let (line,col) = self.lexer.get_current_position();
+                                eprintln!("Sintax Error in Line {} and Col {}",line,col);
+                                exit(1);
+                            }
+                            let index1: usize = parts[0].parse().unwrap();
+                            let index2: usize = parts[1].parse().unwrap();
+                            expr = Expresion::TupleIndex(Box::new(Expresion::TupleIndex(Box::new(expr), index1)), index2);
+
+
+                        },
+                        _ => {
+                            let (line, col) = self.lexer.get_current_position();
+                            eprintln!("Expected tuple index or member at line {} col {}", line, col);
+                            exit(1);
+                        }
+                    }
+                }
+                Token::LeftBracket => {
+                    self.lexer.get_next_token(); // consume '['
+                    let index = self.parse_expresion();
+                    if self.lexer.get_next_token() == Token::RightBracket {
+                        expr = Expresion::Index(Box::new(expr), Box::new(index));
+                    } else {
+                        let (line, col) = self.lexer.get_current_position();
+                        eprintln!("Expected ']' at line {} col {}", line, col);
+                        exit(1);
+                    }
+                }
+                _ => break,
+            }
+        }
+        expr
     }
 
 }

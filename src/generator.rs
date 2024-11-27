@@ -197,6 +197,23 @@ impl Visitor for PythonVisitor {
   fn visit_boolean(&mut self, boolean: &bool) -> String {
     boolean.to_string()
   }
+  
+  fn visit_tuple(&mut self, elements: &Vec<Expresion>) -> String {
+    let elements = elements.iter().map(|element| element.accept(self)).collect::<Vec<String>>().join(", ");
+    format!("({})", elements)
+    }
+  
+  fn visit_index(&mut self, array: &Expresion, index: &Expresion) -> String {
+    format!("{}[{}]", array.accept(self), index.accept(self))
+    }
+  
+  fn visit_member(&mut self, object: &Expresion, member: &String) -> String {
+    format!("{}.{}", object.accept(self), member)
+    }
+  
+  fn visit_tuple_index(&mut self, tuple: &Expresion, index: usize) -> String {
+      format!("{}[{}]", tuple.accept(self), index)
+    }
 }
 
 

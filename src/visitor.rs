@@ -49,6 +49,11 @@ pub trait Visitor {
   fn visit_array(&mut self, elements: &Vec<Expresion>) -> String;
   fn visit_unary(&mut self, operator: &Token, operand: &Expresion) -> String;
   fn visit_range(&mut self, start: &Expresion, end: &Expresion, inclusive: bool) -> String;
+  fn visit_tuple(&mut self, elements: &Vec<Expresion>) -> String;
+  fn visit_index(&mut self, array: &Expresion, index: &Expresion) -> String;
+  fn visit_member(&mut self, object: &Expresion, member: &String) -> String;
+  fn visit_tuple_index(&mut self, tuple: &Expresion, index: usize) -> String;
+
 
   fn visit_number(&mut self, number: &Number) -> String;
   fn visit_string(&mut self, string: &String) -> String;
