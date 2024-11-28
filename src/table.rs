@@ -25,7 +25,7 @@ pub struct Symbol {
     occurrence: usize, // Line of first occurrence
     scope: u32,  // Scope level
     use_type: UseType, // Type of identifier, either declaration or reference
-    kind: SymbolKind, // Kind of symbol, either variable or function
+    pub kind: SymbolKind, // Kind of symbol, either variable or function
 }
 
 impl Symbol {

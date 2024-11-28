@@ -1,10 +1,12 @@
 use core::panic;
+use std::any::Any;
 use std::process::exit;
 use crate::visitor::{Visitable, Visitor};
 use crate::{Symbol, SymbolTable, UseType};
+use crate::table::SymbolKind;
 use crate::lexer::{Lexer, Number, Token};
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Clone)]
 pub enum DataType {
     Integer,
     Float,
@@ -13,7 +15,7 @@ pub enum DataType {
     Void,
     Array(Box<DataType>),
     Tuple(Vec<DataType>),
-    identifier(String),
+    Identifier(String),
 }
 
 
@@ -861,7 +863,107 @@ impl Sintax {
         self.current_scope_id += 1;
         self.current_scope_id
     }
+    
 
+    pub fn semantic_check(&mut self) {
+        // Iterate over all statements in the program
+        for statement in &self.program {
+            // Check until a type error is found
+            if !self.check_type(statement) {
+                return;
+            }
+        }
+        
+        println!("Success: Type checking passed");
+    }
+
+    fn check_type(&self, statement: &Statement) -> bool {
+        // Checking the types involves either checking innermost statements
+        // or collecting the types of the contained expressions, to then 
+        // check wether they match or not
+        let mut type_collection: Vec<DataType> = Vec::new();
+        
+        match statement {
+            // Check the type of the innermost statements
+            Statement::FnDeclaration(name, params, body, _) => {
+                for statement in body {
+                    self.check_type(statement);
+                }
+            }
+            Statement::If(cond, body, else_stmt,_) => {
+                for statement in body {
+                    self.check_type(statement);
+                }
+            }
+            Statement::Loop(body,_) => {
+                for statement in body {
+                    self.check_type(statement);
+                }
+            }
+            Statement::For(var, range, body, _) => {
+                for statement in body {
+                    self.check_type(statement);
+                }
+            }
+            
+
+            // Collect the types of the contained expressions
+            Statement::Return(expr) | Statement::Declaration(_,  expr) => {
+                if let Some(expr) = expr {
+                    type_collection = self.collect_types(expr, type_collection);
+                    if !self.check_collection(type_collection) {
+                        println!("Type Error: Mismatching types involved in expression {:?}", expr);
+                        return false;
+                    }
+                    return true;
+                } else {
+                    return true;
+                }
+            }
+            Statement::Assignment(expr1, expr2) => {
+                type_collection = self.collect_types(expr1, type_collection);
+                type_collection = self.collect_types(expr2, type_collection);
+                if !self.check_collection(type_collection) {
+                    println!("Type Error: Mismatching types involved in expression {:?}", expr1);
+                    return false;
+                }
+                return true;
+            }
+            Statement::ExpressionStatement(expr) => {
+                type_collection = self.collect_types(expr, type_collection);
+                if !self.check_collection(type_collection) {
+                    println!("Type Error: Mismatching types involved in expression {:?}", expr);
+                    return false;
+                }
+                return true;
+            }
+        }
+
+        return true;
+    }
+
+    fn collect_types(&self, expr: &Expresion, type_collection: Vec<DataType>) -> Vec<DataType> {
+        let mut type_collection = type_collection;
+        
+        
+        return type_collection;
+    }
+
+    fn check_collection(&self, type_collection: Vec<DataType>) -> bool {
+        let mut data_type= &DataType::Void;
+
+        for i in 0..type_collection.len() {
+            if i == 0 {
+                data_type = &type_collection[i];
+            } else {
+                if data_type != &type_collection[i]  {
+                    return false;
+                }
+            }
+        }
+        return true;
+    }
 }
+
 
 
