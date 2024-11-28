@@ -3,13 +3,13 @@ use std::collections::HashMap;
 use crate::sintax::DataType;
 use std::fmt;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum UseType {
     Declaration,
     Reference,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum SymbolKind {
     Variable {
         data_type: Option<DataType>,
@@ -44,7 +44,7 @@ impl fmt::Display for SymbolKind {
 
 
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Symbol {
     pub value: String, // Lexeme
     pub  occurrence: usize, // Line of first occurrence
@@ -75,7 +75,7 @@ impl Symbol {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct SymbolTable {
     pub all_scopes: HashMap<u32, HashMap<String, Symbol>>, // Cambiar a HashMap con ID de scope
     active_scopes: Vec<u32>, // Pila de IDs de scopes activos

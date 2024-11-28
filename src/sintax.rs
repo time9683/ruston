@@ -4,7 +4,7 @@ use crate::visitor::{Visitable, Visitor};
 use crate::{Symbol, SymbolTable, UseType};
 use crate::lexer::{Lexer, Number, Token};
 
-#[derive(Debug)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum DataType {
     Integer,
     Float,
