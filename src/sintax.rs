@@ -963,10 +963,7 @@ impl Sintax {
             }
         }
         expr
-    }
-
-}
-    
+    }    
 
     pub fn semantic_check(&mut self) {
         // Iterate over all statements in the program
