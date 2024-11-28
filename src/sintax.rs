@@ -331,8 +331,8 @@ impl Sintax {
                                 eprintln!("Expected data type at line {} col {}", line, col);
                                 exit(1);
                             }
-                            param_types.push(data_type.unwrap());
-                            params.push(id);
+                            param_types.push(data_type.clone().unwrap());
+                            params.push(id.clone());
                         }
                         _ => {
                             let (line,col) =  self.lexer.get_current_position();
@@ -374,7 +374,8 @@ impl Sintax {
                 0,
                 UseType::Declaration,
                 return_type,
-                param_types,
+                params.clone(),
+                param_types.clone(),
             ));
 
             let scope_id = self.generate_scope_id();
@@ -1110,7 +1111,7 @@ impl Sintax {
                 // Get the type if it's a function, ignore the rest
                 if let Some(symbol) = symbol {
                     match &symbol.kind {
-                        SymbolKind::Function { data_type, parameters } => {
+                        SymbolKind::Function { data_type, parameters, param_types } => {
                             // TODO: Validate the args before collecting the function value
                             // Collect the function value
                             if let Some(data_type) = data_type {

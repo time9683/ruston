@@ -16,7 +16,8 @@ pub enum SymbolKind {
     },
     Function {
         data_type: Option<DataType>,
-        parameters: Vec<DataType>,
+        parameters: Vec<String>,
+        param_types: Vec<DataType>,
     },
 }
 
@@ -35,8 +36,8 @@ impl fmt::Display for SymbolKind {
 
                 }
             }
-            SymbolKind::Function { data_type, parameters } => {
-                write!(f, "Function: {:?} with parameters {:?}", data_type, parameters)
+            SymbolKind::Function { data_type, parameters, param_types} => {
+                write!(f, "Function: {:?} with parameters {:?}", data_type, parameters.iter().zip(param_types.iter()).collect::<Vec<_>>())
             }
         }
     }
@@ -48,9 +49,9 @@ impl fmt::Display for SymbolKind {
 pub struct Symbol {
     pub value: String, // Lexeme
     pub  occurrence: usize, // Line of first occurrence
-     pub scope: u32,  // Scope level
-     pub use_type: UseType, // Type of identifier, either declaration or reference
-     pub   kind: SymbolKind, // Kind of symbol, either variable or function
+    pub scope: u32,  // Scope level
+    pub use_type: UseType, // Type of identifier, either declaration or reference
+    pub   kind: SymbolKind, // Kind of symbol, either variable or function
 }
 
 impl Symbol {
@@ -64,13 +65,13 @@ impl Symbol {
         }
     }
 
-    pub fn function(value: String, occurrence: usize, scope: u32, use_type: UseType, data_type: Option<DataType>, parameters: Vec<DataType>) -> Self {
+    pub fn function(value: String, occurrence: usize, scope: u32, use_type: UseType, data_type: Option<DataType>, parameters: Vec<String>, param_types: Vec<DataType>) -> Self {
         Symbol {
             value,
             occurrence,
             scope,
             use_type,
-            kind: SymbolKind::Function { data_type, parameters },
+            kind: SymbolKind::Function { data_type, parameters, param_types },
         }
     }
 }
