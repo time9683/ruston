@@ -4,6 +4,7 @@ mod table;
 mod tree_display;
 mod visitor;
 mod generator;
+mod gramatic;
 use lexer::{Lexer,Token};
 use dialoguer::{theme::ColorfulTheme,Select};
 use sintax::{DataType, Sintax, Statement};
@@ -73,11 +74,11 @@ fn main() {
             display_tree(&parser.program);
             let table = parser.table;
 
-            println!("{:<20} | {:<20} | {:<20}", "Name", "Type", "Data Type");
+            println!("{:<20}| {:<20} | {:<20} | {:<20}","Scope" ,"Name", "Type", "Data Type");
             println!("{:-<62}", "");
-            for symbol in table.all_scopes {
-                for symbol in symbol.1 {
-                    println!("{:<20} | {:<20} | {:<20}", symbol.0, format!("{:?}", symbol.1.use_type), symbol.1.kind);
+            for symbol_1 in table.all_scopes {
+                for symbol in symbol_1.1 {
+                    println!("{:<20} | {:<20} | {:<20} | {:<20}",symbol_1.0,symbol.0, format!("{:?}", symbol.1.use_type), symbol.1.kind);
                 }
             }
             
