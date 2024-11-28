@@ -1033,7 +1033,6 @@ impl Sintax {
                 if let Some(expr) = expr {
                     type_collection = self.collect_types(expr, type_collection);
                     if !self.check_collection(type_collection.clone()) {
-                        println!("Type Error: Mismatching types involved in expression");
                         print_expression(expr);
                         println!();
                         println!("{:?}", type_collection);
@@ -1049,7 +1048,6 @@ impl Sintax {
                 if let Some(expr) = expr {
                     type_collection = self.collect_types(expr, type_collection);
                     if !self.check_collection(type_collection.clone()) {
-                        println!("Type Error: Mismatching types involved in declaration");
                         print!("let {} = ", id);
                         print_expression(expr);
                         println!();
@@ -1065,7 +1063,6 @@ impl Sintax {
                 type_collection = self.collect_types(expr1, type_collection);
                 type_collection = self.collect_types(expr2, type_collection);
                 if !self.check_collection(type_collection.clone()) {
-                    println!("Type Error: Mismatching types involved in assignment");
                     print_expression(expr1);
                     print!("= ");
                     print_expression(expr2);
@@ -1171,29 +1168,25 @@ impl Sintax {
                     }
                 }
             }
+
+            // Collect the type of the actual terminal expression, but need to validate innermost expressions
             Expresion::FnCall(name, args) => {
                 // Validate if the function exists in the symbol table
-                let symbol = self.table.lookup(name);
+                let fn_type = self.collect_id_type(name);
 
-                // Get the type if it's a function, ignore the rest
-                if let Some(symbol) = symbol {
-                    match &symbol.kind {
-                        SymbolKind::Function { data_type, parameters, param_types } => {
-                            // TODO: Validate the args before collecting the function value
-                            // Collect the function value
-                            if let Some(data_type) = data_type {
-                                type_collection.push(data_type.clone());
-                            }
-                            else {
-                                type_collection.push(DataType::Void);
-                            }
-                        }
-                        _ => {}
+                // Push the function's type
+                match fn_type {
+                    DataType::Undefined => {
+                        println!("Type Error: Function '{}' not found in symbol table", name);
+                        type_collection.push(DataType::Void);
                     }
-                } else {
-                    println!("Type Error: Function '{}' not found in symbol table", name);
-                    type_collection.push(DataType::Void);
-                }
+                    _ => {
+                        // TODO: Validate the types of the arguments
+                        let params = self.table.get_params(name);
+
+                        
+                    }
+                }    
             }
             // TODO: Validate the index type = integer before pushing the array's type
             Expresion::Index(array, index) => {
@@ -1212,11 +1205,10 @@ impl Sintax {
     }
 
     fn collect_id_type(&self, id: &String) -> DataType {
-        // This function is used to get the type of a variable identifier,
+        // This function is used to get the type of a variable or function identifier,
         // which will return:
-        // - The type of the variable if it's a variable
-        // - Void if it's a variable but doesn't have a type
-        // - Undefined if it's a function or isn't found
+        // - The type of the variable or function
+        // - Undefined if it isn't found
 
         // Get the symbol if its a variable
         let symbol = self.table.get_symbol(id);
@@ -1231,7 +1223,11 @@ impl Sintax {
                         return DataType::Void;
                     }
                 }
-                _ => return DataType::Undefined
+                SymbolKind::Function { data_type, .. } => {
+                    if let Some(data_type) = data_type {
+                        return data_type.clone();
+                    }
+                }
             }
         }
         return DataType::Undefined;
@@ -1255,7 +1251,7 @@ impl Sintax {
                         }
                     }
                 }
-                _ => return DataType::Undefined
+                _ => {}
             }
         }
         DataType::Undefined
@@ -1264,15 +1260,24 @@ impl Sintax {
     fn check_collection(&self, type_collection: Vec<DataType>) -> bool {
         let mut data_type= &DataType::Void;
 
+        // Check for different types in expression
         for i in 0..type_collection.len() {
             if i == 0 {
                 data_type = &type_collection[i];
             } else {
                 if data_type != &type_collection[i]  {
+                    println!("Type Error: Mismatching types in statement");
                     return false;
                 }
             }
         }
+
+        // Validate no Void type in expression
+        if data_type == &DataType::Void {
+            println!("Type Error: Void type found in expression");
+            return false;
+        }
+        
         return true;
     }
 }

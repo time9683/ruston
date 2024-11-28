@@ -93,6 +93,16 @@ fn main() {
             let mut parser = Sintax::new(lexer);
             parser.parse();
             parser.semantic_check();
+            // DEBUGGING TODO: Remove
+            let table = parser.table;
+
+            println!("{:<20} | {:<20} | {:<20}", "Name", "Type", "Data Type");
+            println!("{:-<62}", "");
+            for symbol in table.all_scopes {
+                for symbol in symbol.1 {
+                    println!("{:<20} | {:<20} | {:<20}", symbol.0, format!("{:?}", symbol.1.use_type), symbol.1.kind);
+                }
+            }
         }
         _ => {
             println!("Invalid selection");

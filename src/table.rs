@@ -140,4 +140,15 @@ impl SymbolTable {
         }
         None
     }
+
+    pub fn get_params(&self, name: &str) -> Option<Vec<(&String, &DataType)>> {
+        // This functions returns a vector with the parameters of a function
+        // in a tuple with the name of the parameter and its data type
+        if let Some(symbol) = self.get_symbol(name) {
+            if let SymbolKind::Function { parameters, param_types, .. } = &symbol.kind {
+                return Some(parameters.iter().zip(param_types.iter()).collect::<Vec<_>>());
+            }
+        }
+        None
+    } 
 }
