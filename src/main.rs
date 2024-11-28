@@ -1,3 +1,8 @@
+// let me get the output without warnings geez
+#![allow(unused_variables)]
+#![allow(unused_imports)]
+#![allow(dead_code)]
+
 mod lexer;
 mod sintax;
 mod table;
@@ -71,10 +76,13 @@ fn main() {
             let mut parser = Sintax::new(lexer);
             parser.parse();
             display_tree(&parser.program);
+            println!("{:#?}", parser.table);
 
         }
         2 => {
-            
+            let mut parser = Sintax::new(lexer);
+            parser.parse();
+            parser.semantic_check();
         }
         _ => {
             println!("Invalid selection");
