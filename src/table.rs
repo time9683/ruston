@@ -126,18 +126,4 @@ impl SymbolTable {
         }
         None
     }
-
-    pub fn get_all_symbols(&self) -> Vec<&Symbol> {
-        self.all_scopes.values().flat_map(|scope| scope.values()).collect()
-    }
-
-    pub fn get_symbol(&self, value: &str) -> Option<&Symbol> {
-        let symbols = self.get_all_symbols();
-        for symbol in symbols {
-            if symbol.value == value {
-                return Some(symbol);
-            }
-        }
-        None
-    }
 }
