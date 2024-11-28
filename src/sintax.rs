@@ -4,6 +4,7 @@ use crate::visitor::{Visitable, Visitor};
 use crate::{Symbol, SymbolTable, UseType};
 use crate::table::SymbolKind;
 use crate::lexer::{Lexer, Number, Token};
+use crate::tree_display::print_expression;
 
 #[derive(Debug, PartialEq, Clone)]
 pub enum DataType {
@@ -12,6 +13,7 @@ pub enum DataType {
     String,
     Boolean,
     Void,
+    Undefined,
     Array(Box<DataType>,i32),
     Tuple(Vec<DataType>),
     Identifier(String),
@@ -968,15 +970,20 @@ impl Sintax {
 
 
     pub fn semantic_check(&mut self) {
+        let mut error = false;
         // Iterate over all statements in the program
         for statement in &self.program {
             // Check until a type error is found
             if !self.check_type(statement) {
-                return;
+                error = true;
+                break
             }
         }
-        
-        println!("Success: Type checking passed");
+        // If no type errors were found, print success message
+        // TODO: This prints success even if there's a failure in the type checking, probably a recursion thing
+        if !error {
+            println!("Success: Type checking passed");
+        }
     }
 
     fn check_type(&self, statement: &Statement) -> bool {
@@ -989,32 +996,64 @@ impl Sintax {
             // Check the type of the innermost statements
             Statement::FnDeclaration(name, params, body, _) => {
                 for statement in body {
-                    self.check_type(statement);
+                    // Check until a type error is found
+                    if !self.check_type(statement) {
+                        break
+                    }
                 }
             }
             Statement::If(cond, body, else_stmt,_) => {
                 for statement in body {
-                    self.check_type(statement);
+                    // Check until a type error is found
+                    if !self.check_type(statement) {
+                        break
+                    }
                 }
             }
             Statement::Loop(body,_) => {
                 for statement in body {
-                    self.check_type(statement);
+                    // Check until a type error is found
+                    if !self.check_type(statement) {
+                        break
+                    }
                 }
             }
             Statement::For(var, range, body, _) => {
                 for statement in body {
-                    self.check_type(statement);
+                    // Check until a type error is found
+                    if !self.check_type(statement) {
+                        break
+                    }
                 }
             }
             
 
             // Collect the types of the contained expressions
-            Statement::Return(expr) | Statement::Declaration(_,  expr) => {
+            Statement::Return(expr) => {
                 if let Some(expr) = expr {
                     type_collection = self.collect_types(expr, type_collection);
-                    if !self.check_collection(type_collection) {
-                        println!("Type Error: Mismatching types involved in expression {:?}", expr);
+                    if !self.check_collection(type_collection.clone()) {
+                        println!("Type Error: Mismatching types involved in expression");
+                        print_expression(expr);
+                        println!();
+                        println!("{:?}", type_collection);
+                        return false;
+                    }
+                    return true;
+                } else {
+                    return true;
+                }
+            }
+            Statement::Declaration(id,  expr) => {
+                type_collection.push(self.collect_id_type(id));
+                if let Some(expr) = expr {
+                    type_collection = self.collect_types(expr, type_collection);
+                    if !self.check_collection(type_collection.clone()) {
+                        println!("Type Error: Mismatching types involved in declaration");
+                        print!("let {} = ", id);
+                        print_expression(expr);
+                        println!();
+                        println!("{:?}", type_collection);
                         return false;
                     }
                     return true;
@@ -1025,16 +1064,24 @@ impl Sintax {
             Statement::Assignment(expr1, expr2) => {
                 type_collection = self.collect_types(expr1, type_collection);
                 type_collection = self.collect_types(expr2, type_collection);
-                if !self.check_collection(type_collection) {
-                    println!("Type Error: Mismatching types involved in expression {:?}", expr1);
+                if !self.check_collection(type_collection.clone()) {
+                    println!("Type Error: Mismatching types involved in assignment");
+                    print_expression(expr1);
+                    print!("= ");
+                    print_expression(expr2);
+                    println!();
+                    println!("{:?}", type_collection);
                     return false;
                 }
                 return true;
             }
             Statement::ExpressionStatement(expr) => {
                 type_collection = self.collect_types(expr, type_collection);
-                if !self.check_collection(type_collection) {
-                    println!("Type Error: Mismatching types involved in expression {:?}", expr);
+                if !self.check_collection(type_collection.clone()) {
+                    println!("Type Error: Mismatching types involved in expression");
+                    print_expression(expr);
+                    println!();
+                    println!("{:?}", type_collection);
                     return false;
                 }
                 return true;
@@ -1076,8 +1123,15 @@ impl Sintax {
             // Collect type of the actual terminal expression
             Expresion::Literal(literal) => {
                 match literal {
-                    Literal::Number(_) => {
-                        type_collection.push(DataType::Integer);
+                    Literal::Number(number) => {
+                        match number {
+                            Number::Integer(_) => {
+                                type_collection.push(DataType::Integer);
+                            }
+                            Number::Float(_) => {
+                                type_collection.push(DataType::Float);
+                            }
+                        }
                     }
                     Literal::String(_) => {
                         type_collection.push(DataType::String);
@@ -1087,20 +1141,33 @@ impl Sintax {
                     }
                 }
             }
+            // TODO: Need to validate it's in the same scope as the expression
+            // like var_declaration.scope_id <= var_use.scope_id -> True | This won't work, because that'd make it available for all further scopes
             Expresion::Identifier(id) => {
-                let symbol = self.table.lookup(id);
-                if let Some(symbol) = symbol {
-                    // Get the type if it's a variable, the rest'll get ignored
-                    match &symbol.kind {
-                        SymbolKind::Variable { data_type } => {
-                            if let Some(data_type) = data_type {
-                                type_collection.push(data_type.clone());
-                            }
-                            else {
+                // Collect the type of the identifier if it's a variable
+                let var_type = self.collect_id_type(id);
+                let param_type: DataType;
+
+                // Validate the type of the identifier
+                match var_type {
+                    // If it's undefined, it's not a variable, so check if it's a param
+                    DataType::Undefined => {
+                        param_type = self.collect_param_type(id);
+
+                        match param_type {
+                            // If it's still undefined, it's not a variable or a param
+                            DataType::Undefined => {
+                                println!("Type Error: Identifier '{}' not found in symbol table", id);
                                 type_collection.push(DataType::Void);
                             }
+                            // If it's a param, push the param's type
+                            _ => {
+                                type_collection.push(param_type);
+                            }
                         }
-                        _ => {}
+                    }
+                    _ => {
+                        type_collection.push(var_type);
                     }
                 }
             }
@@ -1142,6 +1209,56 @@ impl Sintax {
             }
         }
         return type_collection;
+    }
+
+    fn collect_id_type(&self, id: &String) -> DataType {
+        // This function is used to get the type of a variable identifier,
+        // which will return:
+        // - The type of the variable if it's a variable
+        // - Void if it's a variable but doesn't have a type
+        // - Undefined if it's a function or isn't found
+
+        // Get the symbol if its a variable
+        let symbol = self.table.get_symbol(id);
+        if let Some(symbol) = symbol {
+            // Get the type if it's a variable, the rest'll get ignored
+            match &symbol.kind {
+                SymbolKind::Variable { data_type } => {
+                    if let Some(data_type) = data_type {
+                        return data_type.clone();
+                    }
+                    else {
+                        return DataType::Void;
+                    }
+                }
+                _ => return DataType::Undefined
+            }
+        }
+        return DataType::Undefined;
+    }
+    
+    fn collect_param_type(&self, id: &String) -> DataType {
+        // This function is used to get the type of a function parameter identifier,
+        // which will return:
+        // - The type of the parameter if it's a parameter
+        // - Undefined if it isn't found
+
+        // Get the symbol if its a function parameter
+        let symbols = self.table.get_all_symbols();
+        for symbol in symbols {
+            // Check the parameters of the functions
+            match &symbol.kind {
+                SymbolKind::Function { parameters, param_types, .. } => {
+                    for (i, param) in parameters.iter().enumerate() {
+                        if param == id {
+                            return param_types[i].clone();
+                        }
+                    }
+                }
+                _ => return DataType::Undefined
+            }
+        }
+        DataType::Undefined
     }
 
     fn check_collection(&self, type_collection: Vec<DataType>) -> bool {
