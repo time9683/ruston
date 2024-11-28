@@ -1,5 +1,4 @@
-use crate::sintax::{Statement, Expresion, Literal};
-use crate::lexer::Number;
+use crate::sintax::{Statement, Expresion};
 
 pub fn display_tree(program: &Vec<Statement>) {
   println!("Program:");
@@ -128,78 +127,3 @@ fn display_expression(expr: &Expresion, indent: usize, is_last: bool) {
     }
   }
 }
-
-pub fn print_expression(expr: &Expresion) {
-  match expr {
-    Expresion::Literal(lit) => {
-      match lit {
-        // TODO: The display of number is buggy, it prints all as integers
-        Literal::Number(number) => {
-          print!("{} ", number);
-        }
-        Literal::Boolean(value) => {
-          print!("{} ", value);
-        }
-        Literal::String(value) => {
-          print!("{} ", value);
-        }
-      }
-    }
-    Expresion::Identifier(name) => {
-      print!("{} ", name);
-    }
-    Expresion::Binary(lhs, op, rhs) => {
-      print_expression(lhs);
-      print!("{} ", op);
-      print_expression(rhs);
-    }
-    Expresion::FnCall(name, args) => {
-      print!("{} ", name);
-      for arg in args {
-        print_expression(arg);
-      }
-    }
-    Expresion::Tuple(elements) => {
-      print!("(");
-      for element in elements {
-        print_expression(element);
-        print!(", ");
-      }
-      print!(") ");
-    }
-    Expresion::Array(elements) => {
-      print!("[");
-      for element in elements {
-        print_expression(element);
-        print!(", ");
-      }
-      print!("] ");
-    }
-    Expresion::Index(array, index) => {
-      print_expression(array);
-      print_expression(index);
-    }
-    Expresion::Member(expr, member) => {
-      print_expression(expr);
-      print!(".{} ", member);
-    }
-    Expresion::TupleIndex(expr, index) => {
-      print_expression(expr);
-      print!("[{}] ", index);
-    }
-    Expresion::Unary(op, expr) => {
-      print!("{} ", op);
-      print_expression(expr);
-    }
-    Expresion::Range(start, end, inclusive) => {
-      print_expression(start);
-      if *inclusive {
-        print!("..=");
-      } else {
-        print!("..");
-      }
-      print_expression(end);
-    }
-  }
-}
-
