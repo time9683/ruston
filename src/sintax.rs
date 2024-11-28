@@ -945,7 +945,68 @@ impl Sintax {
     fn collect_types(&self, expr: &Expresion, type_collection: Vec<DataType>) -> Vec<DataType> {
         let mut type_collection = type_collection;
         
-        
+        match expr {
+            Expresion::Literal(literal) => {
+                match literal {
+                    Literal::Number(_) => {
+                        type_collection.push(DataType::Integer);
+                    }
+                    Literal::String(_) => {
+                        type_collection.push(DataType::String);
+                    }
+                    Literal::Boolean(_) => {
+                        type_collection.push(DataType::Boolean);
+                    }
+                }
+            }
+            Expresion::Identifier(id) => {
+                let symbol = self.table.lookup(id);
+                if let Some(symbol) = symbol {
+                    // Get the type if it's a variable, the rest'll get ignored
+                    match &symbol.kind {
+                        SymbolKind::Variable { data_type } => {
+                            if let Some(data_type) = data_type {
+                                type_collection.push(data_type.clone());
+                            }
+                            else {
+                                type_collection.push(DataType::Void);
+                            }
+                        }
+                        _ => {}
+                    }
+                }
+            }
+            Expresion::Binary(left, _, right) => {
+                type_collection = self.collect_types(left, type_collection);
+                type_collection = self.collect_types(right, type_collection);
+            }
+            Expresion::FnCall(name, args) => {
+                // Validate if the function exists in the symbol table
+                let symbol = self.table.lookup(name);
+
+                // Get the type if it's a function, ignore the rest
+                if let Some(symbol) = symbol {
+                    match &symbol.kind {
+                        SymbolKind::Function { data_type, parameters } => {
+                            // Validate the function value
+                            if let Some(data_type) = data_type {
+                                // Validate the args before pushing the type
+
+                                type_collection.push(data_type.clone());
+                            }
+                            else {
+                                type_collection.push(DataType::Void);
+                            }
+                        }
+                        _ => {}
+                    }
+                } else {
+                    println!("Type Error: Function '{}' not found in symbol table", name);
+                    type_collection.push(DataType::Void);
+                }
+            }
+            
+        }
         return type_collection;
     }
 
