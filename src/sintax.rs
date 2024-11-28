@@ -965,6 +965,7 @@ impl Sintax {
         expr
     }    
 
+
     pub fn semantic_check(&mut self) {
         // Iterate over all statements in the program
         for statement in &self.program {
@@ -1046,6 +1047,32 @@ impl Sintax {
         let mut type_collection = type_collection;
         
         match expr {
+            // Collect the type of the innermost expressions
+            Expresion::Binary(left, _, right) => {
+                type_collection = self.collect_types(left, type_collection);
+                type_collection = self.collect_types(right, type_collection);
+            }
+            Expresion::Array(elements) => {
+                for element in elements {
+                    type_collection = self.collect_types(element, type_collection);
+                }
+            }
+            // TODO: Tuples' types need to be validated as well
+            Expresion::Tuple(elements) => {
+                for element in elements {
+                    type_collection = self.collect_types(element, type_collection);
+                }
+            }
+            // TODO: Validate the token type to be - or ! before pushing the unary's type
+            Expresion::Unary(op, expr) => {
+                
+            }
+            // TODO: Validate the range type = integer before pushing the range's type (array)
+            Expresion::Range(start, end, inclusive) => {
+
+            }
+
+            // Collect type of the actual terminal expression
             Expresion::Literal(literal) => {
                 match literal {
                     Literal::Number(_) => {
@@ -1076,10 +1103,6 @@ impl Sintax {
                     }
                 }
             }
-            Expresion::Binary(left, _, right) => {
-                type_collection = self.collect_types(left, type_collection);
-                type_collection = self.collect_types(right, type_collection);
-            }
             Expresion::FnCall(name, args) => {
                 // Validate if the function exists in the symbol table
                 let symbol = self.table.lookup(name);
@@ -1088,10 +1111,9 @@ impl Sintax {
                 if let Some(symbol) = symbol {
                     match &symbol.kind {
                         SymbolKind::Function { data_type, parameters } => {
-                            // Validate the function value
+                            // TODO: Validate the args before collecting the function value
+                            // Collect the function value
                             if let Some(data_type) = data_type {
-                                // Validate the args before pushing the type
-
                                 type_collection.push(data_type.clone());
                             }
                             else {
@@ -1105,7 +1127,18 @@ impl Sintax {
                     type_collection.push(DataType::Void);
                 }
             }
-            
+            // TODO: Validate the index type = integer before pushing the array's type
+            Expresion::Index(array, index) => {
+
+            }
+            // TODO: Validate the member type = integer before pushing the tuple's type
+            Expresion::Member(expr, member) => {
+
+            }
+            // TODO: Validate the index type = integer before pushing the tuple's type
+            Expresion::TupleIndex(expr, index) => {
+
+            }
         }
         return type_collection;
     }
