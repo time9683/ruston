@@ -161,17 +161,21 @@ pub fn print_expression(expr: &Expresion) {
     }
     Expresion::Tuple(elements) => {
       print!("(");
-      for element in elements {
+      for (i, element) in elements.iter().enumerate() {
         print_expression(element);
-        print!(", ");
+        if i < elements.len() - 1 {
+          print!(", ");
+        }
       }
       print!(") ");
     }
     Expresion::Array(elements) => {
       print!("[");
-      for element in elements {
+      for (i, element) in elements.iter().enumerate() {
         print_expression(element);
-        print!(", ");
+        if i < elements.len() - 1 {
+          print!(", ");
+        }
       }
       print!("] ");
     }
