@@ -138,10 +138,10 @@ pub fn print_expression(expr: &Expresion) {
           print!("{:?} ", number);
         }
         Literal::Boolean(value) => {
-          print!("{} ", value);
+          print!("{:?} ", value);
         }
         Literal::String(value) => {
-          print!("{} ", value);
+          print!("{:?} ", value);
         }
       }
     }
