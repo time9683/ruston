@@ -154,10 +154,14 @@ pub fn print_expression(expr: &Expresion) {
       print_expression(rhs);
     }
     Expresion::FnCall(name, args) => {
-      print!("{} ", name);
-      for arg in args {
-        print_expression(arg);
+      print!("{} ( ", name);
+      for i in 0..args.len() {
+        print_expression(&args[i]);
+        if i < args.len() - 1 {
+          print!(", ");
+        }
       }
+      print!(") ");
     }
     Expresion::Tuple(elements) => {
       print!("(");

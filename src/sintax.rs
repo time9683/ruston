@@ -1405,10 +1405,29 @@ impl Sintax {
                         type_collection.push(DataType::Void);
                     }
                     _ => {
-                        // TODO: Validate the types of the arguments
-                        let params = self.table.get_params(name);
+                        // Validate the types of the arguments
+                        if let Some(params) = self.table.get_params(name) {
+                            let mut arg_types: Vec<DataType> = Vec::new();
 
-                        
+                            for arg in args {
+                                let mut arg_collection: Vec<DataType> = Vec::new();
+                                arg_collection = self.collect_types(arg, arg_collection);
+                                if !self.check_collection(arg_collection.clone()) {
+                                    return arg_collection;
+                                }
+                                arg_types.push(arg_collection[0].clone());
+                            }
+                            // Validate the arguments match the function's parameters
+                            for i in 0..params.len() {
+                                if params[i] != arg_types[i] {
+                                    println!("Type Error: Mismatching arguments in function call");
+                                    type_collection.push(DataType::Void);
+                                    return type_collection;
+                                }
+                            }
+
+                            type_collection.push(fn_type);
+                        }
                     }
                 }    
             }
