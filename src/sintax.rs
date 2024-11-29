@@ -991,40 +991,56 @@ impl Sintax {
         // or collecting the types of the contained expressions, to then 
         // check wether they match or not
         let mut type_collection: Vec<DataType> = Vec::new();
+        let mut valid = false;
         
         match statement {
             // Check the type of the innermost statements
             Statement::FnDeclaration(name, params, body, _) => {
                 for statement in body {
                     // Check until a type error is found
-                    if !self.check_type(statement) {
-                        break
+                    valid = self.check_type(statement);
+                    if !valid {
+                        break;
                     }
                 }
+                return valid;
             }
             Statement::If(cond, body, else_stmt,_) => {
+                let mut valid = false;
                 for statement in body {
                     // Check until a type error is found
-                    if !self.check_type(statement) {
-                        break
-                    }
+                    valid = self.check_type(statement);
                 }
+                if let Some(else_stmt) = else_stmt {
+                    valid =  self.check_type(else_stmt);
+                }
+                return valid;
             }
             Statement::Loop(body,_) => {
                 for statement in body {
                     // Check until a type error is found
-                    if !self.check_type(statement) {
-                        break
+                    valid = self.check_type(statement);
+                    if !valid {
+                        break;
                     }
                 }
+                return valid;
             }
             Statement::For(var, range, body, _) => {
+                // Validate the range involves either integers or an array
+                let types = self.collect_types(range, type_collection);
+
+                 //match types[0] {
+
+                 // }
                 for statement in body {
                     // Check until a type error is found
-                    if !self.check_type(statement) {
-                        break
+                    valid = self.check_type(statement);
+                    if !valid {
+                        break;
                     }
                 }
+                return valid;
             }
             
 
@@ -1084,8 +1100,6 @@ impl Sintax {
                 return true;
             }
         }
-
-        return true;
     }
 
     fn collect_types(&self, expr: &Expresion, type_collection: Vec<DataType>) -> Vec<DataType> {
@@ -1099,7 +1113,10 @@ impl Sintax {
             }
             Expresion::Array(elements) => {
                 for element in elements {
-                    type_collection = self.collect_types(element, type_collection);
+                    let expr_coll: Vec<DataType> = Vec::new();
+                    let expr_type = &self.collect_types(element, expr_coll)[0];
+                    // TODO: Should return an array type, not just the element type
+                    // type_collection.push(Box::new(DataType::Array(expr_type.clone(), expr_coll.len() as i32)));
                 }
             }
             // TODO: Tuples' types need to be validated as well
@@ -1113,8 +1130,9 @@ impl Sintax {
                 
             }
             // TODO: Validate the range type = integer before pushing the range's type (array)
-            Expresion::Range(start, end, inclusive) => {
-
+            Expresion::Range(start, end, _) => {
+                type_collection = self.collect_types(start, type_collection);
+                type_collection = self.collect_types(end, type_collection);
             }
 
             // Collect type of the actual terminal expression
@@ -1271,6 +1289,7 @@ impl Sintax {
                 }
             }
         }
+        // TODO: This prints both errors, but it should only print the first one
 
         // Validate no Void type in expression
         if data_type == &DataType::Void {
