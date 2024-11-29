@@ -259,7 +259,6 @@ impl Sintax {
     fn parse_array(&mut self) -> Expresion {
         let mut elements = Vec::new();
         let x = self.lexer.peek_token();
-        println!("{:?}", x);
         while self.lexer.peek_token() != Token::RightBracket {
             elements.push(self.parse_expresion());
             match self.lexer.peek_token() {
@@ -1112,12 +1111,30 @@ impl Sintax {
                 type_collection = self.collect_types(right, type_collection);
             }
             Expresion::Array(elements) => {
+                let mut arr_collection: Vec<DataType> = Vec::new();
+                // Collect and validate the type of each expression in the array
                 for element in elements {
-                    let expr_coll: Vec<DataType> = Vec::new();
-                    let expr_type = &self.collect_types(element, expr_coll)[0];
-                    // TODO: Should return an array type, not just the element type
-                    // type_collection.push(Box::new(DataType::Array(expr_type.clone(), expr_coll.len() as i32)));
+                    let mut expr_coll: Vec<DataType> = Vec::new();
+                    expr_coll = self.collect_types(element, expr_coll);
+                    if self.check_collection(expr_coll.clone()) {
+                        arr_collection.push(expr_coll[0].clone());
+                    }
+                    else {
+                        // Shortcircuit the evaluation if a type error is found
+                        arr_collection.push(DataType::Void);
+                        return type_collection;
+                    }
                 }
+
+                // Validate the type of the array contents
+                if !self.check_collection(arr_collection.clone()) {
+                    println!("Type Error: Mismatching types in array");
+                    println!("{:?}", arr_collection);
+                    return arr_collection;
+                }
+
+                // Push the array type with its contained type
+                type_collection.push(DataType::Array(Box::new(arr_collection[0].clone()), elements.len() as i32));
             }
             // TODO: Tuples' types need to be validated as well
             Expresion::Tuple(elements) => {
