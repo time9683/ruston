@@ -1122,7 +1122,7 @@ impl Sintax {
                     println!("Type Error: Mismatching types in expression statement");
                     print_expression(expr);
                     println!();
-                    return false;
+                    println!("{:?}", type_collection);
                 }
                 return true;
             }
@@ -1431,17 +1431,44 @@ impl Sintax {
                     }
                 }    
             }
-            // TODO: Validate the index type = integer before pushing the array's type
             Expresion::Index(array, index) => {
+                // Validate the index type
+                let mut index_collection: Vec<DataType> = Vec::new();
+                index_collection = self.collect_types(index, index_collection);
 
+                if index_collection.len() == 1 && index_collection[0] == DataType::Integer {
+                    // Get the type of the array, if it exists
+                    if let Expresion::Identifier(id) = &**array {
+                        let array_type = self.collect_id_type(id);
+                        if let DataType::Array(data_type, _) = array_type {
+                            type_collection.push(*data_type);
+                        } else {
+                            println!("Type Error: Identifier '{}' is not an array", id);
+                            type_collection.push(DataType::Void);
+                        }
+                    }
+                    
+                } else {
+                    println!("Type Error: Non-integer type in array index");
+                    type_collection.push(DataType::Void);
+                    return type_collection;
+                }
             }
-            // TODO: Validate the member type = integer before pushing the tuple's type
-            Expresion::Member(expr, member) => {
-
-            }
-            // TODO: Validate the index type = integer before pushing the tuple's type
             Expresion::TupleIndex(expr, index) => {
+                // Get the ith type of the tuple, if it exists
+                if let Expresion::Identifier(id) = &**expr {
+                    let tup_type = self.collect_id_type(id);
+                    if let DataType::Tuple(data_type) = tup_type {
+                        type_collection.push(data_type[*index].clone());
+                    } else {
+                        println!("Type Error: Identifier '{}' is not an array", id);
+                        type_collection.push(DataType::Void);
+                    }
+                }
 
+            }
+            Expresion::Member(expr, member) => {
+                // If this is about tuples, then the previous match will handle it, right?
             }
         }
         return type_collection;
