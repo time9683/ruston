@@ -135,7 +135,7 @@ pub fn print_expression(expr: &Expresion) {
       match lit {
         // TODO: The display of number is buggy, it prints all as integers
         Literal::Number(number) => {
-          print!("{} ", number);
+          print!("{:?} ", number);
         }
         Literal::Boolean(value) => {
           print!("{} ", value);

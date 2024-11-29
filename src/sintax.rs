@@ -1026,19 +1026,39 @@ impl Sintax {
                 return valid;
             }
             Statement::For(var, range, body, _) => {
-                // Validate the range involves either integers or an array
+                let mut valid_range = false;
+                // Validate the range involves either integers or an array of integers
                 let types = self.collect_types(range, type_collection);
 
-                 //match types[0] {
-
-                 // }
-                for statement in body {
-                    // Check until a type error is found
-                    valid = self.check_type(statement);
-                    if !valid {
-                        break;
+                if types.len() == 1 {
+                    if let DataType::Array(data_type, _) = &types[0] {
+                        match **data_type {
+                            DataType::Integer => {
+                                valid_range = true;
+                            }
+                            _ => {}
+                        }
+                    } 
+                } else if types.len() == 2 && self.check_collection(types.clone()) {
+                    if let DataType::Integer = types[0] {
+                        valid_range = true
                     }
                 }
+
+                // Evaluate statements only if range was valid
+                if valid_range {
+                    for statement in body {
+                        // Check until a type error is found
+                        valid = self.check_type(statement);
+                        if !valid {
+                            break;
+                        }
+                    }
+                } else {
+                    println!("Type Error: Invalid range");
+                    println!("{:?}", print_expression(range));
+                }
+
                 return valid;
             }
             
@@ -1048,6 +1068,7 @@ impl Sintax {
                 if let Some(expr) = expr {
                     type_collection = self.collect_types(expr, type_collection);
                     if !self.check_collection(type_collection.clone()) {
+                    println!("Type Error: Mismatching types in statement");
                         print_expression(expr);
                         println!();
                         println!("{:?}", type_collection);
@@ -1063,6 +1084,7 @@ impl Sintax {
                 if let Some(expr) = expr {
                     type_collection = self.collect_types(expr, type_collection);
                     if !self.check_collection(type_collection.clone()) {
+                    println!("Type Error: Mismatching types in declaration");
                         print!("let {} = ", id);
                         print_expression(expr);
                         println!();
@@ -1078,6 +1100,7 @@ impl Sintax {
                 type_collection = self.collect_types(expr1, type_collection);
                 type_collection = self.collect_types(expr2, type_collection);
                 if !self.check_collection(type_collection.clone()) {
+                    println!("Type Error: Mismatching types in assignment");
                     print_expression(expr1);
                     print!("= ");
                     print_expression(expr2);
@@ -1301,7 +1324,6 @@ impl Sintax {
                 data_type = &type_collection[i];
             } else {
                 if data_type != &type_collection[i]  {
-                    println!("Type Error: Mismatching types in statement");
                     return false;
                 }
             }
