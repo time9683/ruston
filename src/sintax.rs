@@ -12,7 +12,10 @@ pub enum DataType {
     Float,
     String,
     Boolean,
+    // Void is used for functions that do not return a value,
+    // variables that have no type, and expressions with faulty typing
     Void,
+    // Undefined is used for identifiers that have not been initialized
     Undefined,
     Array(Box<DataType>,i32),
     Tuple(Vec<DataType>),
@@ -1006,6 +1009,9 @@ impl Sintax {
             }
             Statement::If(cond, body, else_stmt,_) => {
                 let mut valid = false;
+
+
+                // Validate statements if the condition results in a boolean
                 for statement in body {
                     // Check until a type error is found
                     valid = self.check_type(statement);
@@ -1027,24 +1033,25 @@ impl Sintax {
             }
             Statement::For(var, range, body, _) => {
                 let mut valid_range = false;
-                // Validate the range involves either integers or an array of integers
+                // The range is given by either a range expression or an array, both of which
+                // can be validated by just collecting their types, and checking if they only include
+                // integers.
                 let types = self.collect_types(range, type_collection);
 
-                if types.len() == 1 {
-                    if let DataType::Array(data_type, _) = &types[0] {
-                        match **data_type {
-                            DataType::Integer => {
-                                valid_range = true;
-                            }
-                            _ => {}
+                match range {
+                    Expresion::Range(_, _, _) => {
+                        if self.check_collection(types) {
+                            valid_range = true;
                         }
-                    } 
-                } else if types.len() == 2 && self.check_collection(types.clone()) {
-                    if let DataType::Integer = types[0] {
-                        valid_range = true
                     }
+                    Expresion::Array(_) => {
+                        if types[0] == DataType::Integer {
+                            valid_range = true;
+                        }
+                    }
+                    _ => {}
                 }
-
+                
                 // Evaluate statements only if range was valid
                 if valid_range {
                     for statement in body {
@@ -1055,7 +1062,7 @@ impl Sintax {
                         }
                     }
                 } else {
-                    println!("Type Error: Invalid range");
+                    println!("Type Error: Invalid range, use only integers");
                     println!("{:?}", print_expression(range));
                 }
 
@@ -1071,7 +1078,6 @@ impl Sintax {
                     println!("Type Error: Mismatching types in statement");
                         print_expression(expr);
                         println!();
-                        println!("{:?}", type_collection);
                         return false;
                     }
                     return true;
@@ -1113,10 +1119,9 @@ impl Sintax {
             Statement::ExpressionStatement(expr) => {
                 type_collection = self.collect_types(expr, type_collection);
                 if !self.check_collection(type_collection.clone()) {
-                    println!("Type Error: Mismatching types involved in expression");
+                    println!("Type Error: Mismatching types in expression statement");
                     print_expression(expr);
                     println!();
-                    println!("{:?}", type_collection);
                     return false;
                 }
                 return true;
@@ -1129,10 +1134,125 @@ impl Sintax {
         
         match expr {
             // Collect the type of the innermost expressions
-            Expresion::Binary(left, _, right) => {
-                type_collection = self.collect_types(left, type_collection);
-                type_collection = self.collect_types(right, type_collection);
+            Expresion::Binary(left, token, right) => {
+                let mut left_collection: Vec<DataType> = Vec::new();
+                let left_type: DataType;
+                let mut right_collection: Vec<DataType> = Vec::new();
+                let right_type: DataType;
+                let mut bin_type: Vec<DataType> = Vec::new();
+
+                // The idea is to recursively collect the types of the expressions, so that each pair 
+                // of expressions are added to the collection as a single type if they're valid.
+
+                // WARNING: This recycles a lot of code, but it's necessary as the logic for each type of
+                // binary expression is different. This could be refactored into a separate function, but
+                // it would be harder to read and maintain.
+                match token {
+                    Token::Operator(_) => {
+                        left_collection = self.collect_types(left, left_collection);
+                        // Continue only if the left expression checks out and only has numbers
+                        if (&left_collection[0] == &DataType::Integer || &left_collection[0] == &DataType::Float) &&
+                            self.check_collection(left_collection.clone()) {
+                                left_type = left_collection[0].clone();
+                        }
+                        else {
+                            println!("Type Error: Non-numeric types in arithmetic operation");
+                            bin_type.push(DataType::Void);
+                            return bin_type;
+                        }
+
+                        right_collection = self.collect_types(right, right_collection);
+                        // Continue only if the right expression checks out and only has numbers
+                        if (&right_collection[0] == &DataType::Integer || &right_collection[0] == &DataType::Float) &&
+                            self.check_collection(right_collection.clone()) {
+                                right_type = right_collection[0].clone();
+                        } else {
+                            println!("Type Error: Non-numeric types in arithmetic operation");
+                            bin_type.push(DataType::Void);
+                            return bin_type;
+                        }
+
+                        if left_type == right_type {
+                            bin_type.push(left_type);
+                        } else {
+                            bin_type.push(DataType::Void);
+                        }
+                    }
+                    Token::LogicalOperator(op) => {
+                        // Collection for ops like && is different to ==, !=, etc.
+                        match op.as_str() {
+                            "||" | "&&" => {
+                                // Same logic as arithmetic operations, but allows and returns boolean expressions exclusively
+                                left_collection = self.collect_types(left, left_collection);
+                                // Continue only if the left expression checks out and only has numbers
+                                if &left_collection[0] == &DataType::Boolean && 
+                                    self.check_collection(left_collection.clone()) {
+                                        left_type = left_collection[0].clone();
+                                }
+                                else {
+                                    println!("Type Error: Non-boolean types in boolean operation");
+                                    bin_type.push(DataType::Void);
+                                    return bin_type;
+                                }
+
+                                right_collection = self.collect_types(right, right_collection);
+                                // Continue only if the right expression checks out and only has numbers
+                                if &right_collection[0] == &DataType::Boolean && 
+                                    self.check_collection(right_collection.clone()) {
+                                        right_type = right_collection[0].clone();
+                                } else {
+                                    println!("Type Error: Non-boolean types in boolean operation");
+                                    bin_type.push(DataType::Void);
+                                    return bin_type;
+                                }
+
+                                if left_type == right_type {
+                                    bin_type.push(DataType::Boolean);
+                                } else {
+                                    bin_type.push(DataType::Void);
+                                }
+                            }
+                            _ => {
+                                // Same logic as arithmetic operations, but returning bool
+                                // Allow only boolean expressions with numeric expressions
+                                left_collection = self.collect_types(left, left_collection);
+                                // Continue only if the left expression checks out and only has numbers
+                                if (&left_collection[0] == &DataType::Integer || &left_collection[0] == &DataType::Float) &&
+                                    self.check_collection(left_collection.clone()) {
+                                        left_type = left_collection[0].clone();
+                                }
+                                else {
+                                    println!("Type Error: Non-numeric types in boolean comparison");
+                                    bin_type.push(DataType::Void);
+                                    return bin_type;
+                                }
+
+                                right_collection = self.collect_types(right, right_collection);
+                                // Continue only if the right expression checks out and only has numbers
+                                if (&right_collection[0] == &DataType::Integer || &right_collection[0] == &DataType::Float) &&
+                                    self.check_collection(right_collection.clone()) {
+                                        right_type = right_collection[0].clone();
+                                } else {
+                                    println!("Type Error: Non-numeric types in boolean comparison");
+                                    bin_type.push(DataType::Void);
+                                    return bin_type;
+                                }
+
+                                if left_type == right_type {
+                                    bin_type.push(DataType::Boolean);
+                                } else {
+                                    bin_type.push(DataType::Void);
+                                }
+                            }
+                        }
+                    }
+                    _ => {}
+                }
+                return bin_type;
             }
+            // WARNING: Array and Tuples share the collection of each expression,
+            // which could be refactored if it weren't necessary to shortcircuit
+            // the complete evaluation of this function if a type check fails
             Expresion::Array(elements) => {
                 let mut arr_collection: Vec<DataType> = Vec::new();
                 // Collect and validate the type of each expression in the array
@@ -1145,7 +1265,7 @@ impl Sintax {
                     else {
                         // Shortcircuit the evaluation if a type error is found
                         arr_collection.push(DataType::Void);
-                        return type_collection;
+                        return arr_collection;
                     }
                 }
 
@@ -1161,18 +1281,64 @@ impl Sintax {
             }
             // TODO: Tuples' types need to be validated as well
             Expresion::Tuple(elements) => {
+                let mut tup_collection: Vec<DataType> = Vec::new();
                 for element in elements {
-                    type_collection = self.collect_types(element, type_collection);
+                    // Validate each element in the tuple
+                    let mut expr_coll: Vec<DataType> = Vec::new();
+                    expr_coll = self.collect_types(element, expr_coll);
+                    if self.check_collection(expr_coll.clone()) {
+                        tup_collection.push(expr_coll[0].clone());
+                    }
+                    else {
+                        // Shortcircuit the evaluation if a type error is found
+                        tup_collection.push(DataType::Void);
+                        return tup_collection;
+                    }
+                }
+
+                // Push the tuple type with its contained types
+                type_collection.push(DataType::Tuple(tup_collection));
+            }
+            Expresion::Unary(op, expr) => {
+                let mut expr_collection: Vec<DataType> = Vec::new();
+                // Validate token type
+                if &Token::Operator("-".to_string()) == op {
+                    expr_collection = self.collect_types(expr, expr_collection);
+                    // Return void if the type isn't a number
+                    for data_type in expr_collection.clone() {
+                        if data_type != DataType::Integer && data_type != DataType::Float {
+                            println!("Type Error: Non-numeric type in unary operation");
+                            expr_collection.push(DataType::Void);
+                            return expr_collection;
+                        }
+                    }
+                } else if &Token::Operator("!".to_string()) == op {
+                    type_collection = self.collect_types(expr, type_collection);
+                    // Return void if the type isn't a boolean
+                    for data_type in type_collection.clone() {
+                        if data_type != DataType::Boolean {
+                            println!("Type Error: Non-boolean type in unary operation");
+                            type_collection.push(DataType::Void);
+                            return type_collection;
+                        }
+                    }
+                } else {
+                    type_collection.push(DataType::Void);
+                    return type_collection;
                 }
             }
-            // TODO: Validate the token type to be - or ! before pushing the unary's type
-            Expresion::Unary(op, expr) => {
-                
-            }
-            // TODO: Validate the range type = integer before pushing the range's type (array)
             Expresion::Range(start, end, _) => {
                 type_collection = self.collect_types(start, type_collection);
                 type_collection = self.collect_types(end, type_collection);
+
+                // Return void if the types aren't integers
+                for data_type in type_collection.clone() {
+                    if data_type != DataType::Integer {
+                        println!("Type Error: Non-integer type in range");
+                        type_collection.push(DataType::Void);
+                        return type_collection;
+                    }
+                }
             }
 
             // Collect type of the actual terminal expression
@@ -1332,7 +1498,7 @@ impl Sintax {
 
         // Validate no Void type in expression
         if data_type == &DataType::Void {
-            println!("Type Error: Void type found in expression");
+            println!("Type Error: Void type found in expression. Declare the value or use a valid type");
             return false;
         }
         
