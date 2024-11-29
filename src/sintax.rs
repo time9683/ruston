@@ -847,7 +847,7 @@ impl Sintax {
             Token::TypeBool => DataType::Boolean,
             Token::LeftBracket => {
                 let  data_type = self.get_unit_type();
-                if self.lexer.get_next_token() == Token::Comma{
+                if self.lexer.get_next_token() == Token::Semicolon{
                     let size = self.lexer.get_next_token();
                     if let Token::Number(Number::Integer(n)) = size{
 
@@ -870,7 +870,7 @@ impl Sintax {
 
             }else{
                 let (line,col) =  self.lexer.get_current_position();
-                eprintln!("Expected ',' at line {} col {}", line, col);
+                eprintln!("Expected ';' at line {} col {}", line, col);
                 exit(1);
          }
         }
