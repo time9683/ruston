@@ -4,6 +4,8 @@ mod table;
 mod tree_display;
 mod visitor;
 mod generator;
+use std::time::SystemTime;
+
 use lexer::{Lexer,Token};
 use dialoguer::{theme::ColorfulTheme,Select};
 use sintax::{DataType, Sintax, Statement};
@@ -31,7 +33,7 @@ fn main() {
     // read the file
     let source = std::fs::read_to_string(path).expect("Could not read file");
     // create a lexer
-    let mut lexer = Lexer::new(source);
+    let mut lexer = Lexer::new(&source);
 
     if args.len() == 2{
         let mut parser = Sintax::new(lexer.clone());
@@ -145,6 +147,7 @@ fn get_type_and_value(token: &Token) -> (&str, String) {
 fn analysis_lexical(lexer: &mut Lexer) -> Vec<Token> {
     // loop through the tokens
     let mut tokens = Vec::new();
+    let now = SystemTime::now();
     loop {
         let token = lexer.get_next_token();
         if token == Token::EOF {
@@ -153,16 +156,18 @@ fn analysis_lexical(lexer: &mut Lexer) -> Vec<Token> {
         tokens.push(token);
     }
 
+    let elapsed = now.elapsed().unwrap();
+    println!("Elapsed: {}ms", elapsed.as_millis());
     // sort tokens by their type
-    tokens.sort_by(|a, b| format!("{:?}", a).cmp(&format!("{:?}", b)));
+    // tokens.sort_by(|a, b| format!("{:?}", a).cmp(&format!("{:?}", b)));
 
-    // print tokens in a table format
-    println!("{:<20} | {:<20}", "Token Type", "Token Value");
-    println!("{:-<41}", "");
-    for token in &tokens {
-        let (token_type, token_value) = get_type_and_value(token);
-        println!("{:<20} | {:<20}", token_type, token_value);
-    }
+    // // print tokens in a table format
+    // println!("{:<20} | {:<20}", "Token Type", "Token Value");
+    // println!("{:-<41}", "");
+    // for token in &tokens {
+    //     let (token_type, token_value) = get_type_and_value(token);
+    //     println!("{:<20} | {:<20}", token_type, token_value);
+    // }
 
     tokens
 }

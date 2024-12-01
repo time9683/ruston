@@ -1,4 +1,6 @@
 use std::fmt:: Display;
+use std::str::Chars;
+use std::iter::Peekable;
 #[derive(Debug, PartialEq, PartialOrd,Clone)]
 pub enum Number {
     Float(f32),
@@ -132,17 +134,20 @@ pub struct LexerState {
 
 
 #[derive(Debug, Clone)]
-pub struct Lexer {
-    source: String,
+pub struct Lexer<'a> {
+    source: &'a str,
     current: usize,
     line: usize,
     col: usize,
     lookahead: Option<Token>,
     current_char: Option<char>,
+    // peekable
+    iter_char: Peekable<Chars<'a>>,
+
 }
 
-impl Lexer {
-    pub fn new(source: String) -> Lexer {
+impl<'a> Lexer<'a> {
+    pub fn new(source: &str) -> Lexer {
         Lexer {
             source,
             current: 0,
@@ -150,6 +155,7 @@ impl Lexer {
             line: 1, // row
             lookahead: None,
             current_char: None,
+            iter_char: source.chars().peekable()
         }
     }
 
@@ -189,14 +195,12 @@ impl Lexer {
             self.col = 1;
         }
 
-        // return the next character
-        let char = self.source.chars().nth(self.current);
-        self.current_char = char;
-        char
+        self.current_char = self.iter_char.next();
+        self.current_char
     }
 
-    fn peek(&self) -> Option<char> {
-        self.source.chars().nth(self.current + 1)
+    fn peek(&mut self) -> Option<char> {
+        self.iter_char.peek().cloned()
     }
 
     fn scan_number(&mut self) -> Number {
@@ -313,7 +317,7 @@ impl Lexer {
     pub fn get_next_token(&mut self) -> Token {
 
         if  self.current_char.is_none() {
-            self.current_char = self.source.chars().nth(self.current);
+            self.advance();
         }
 
 

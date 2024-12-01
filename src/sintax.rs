@@ -132,14 +132,14 @@ impl Visitable for  Statement{
 
 
 
-pub struct Sintax {
-    lexer: Lexer,
+pub struct Sintax<'a> {
+    lexer: Lexer<'a>,
     pub program: Vec<Statement>,
     pub table: SymbolTable,
     current_scope_id: u32,
 }
 
-impl Sintax {
+impl<'a> Sintax<'a> {
     pub fn new(lexer: Lexer) -> Sintax {
         Sintax {
             lexer,
