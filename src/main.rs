@@ -164,7 +164,7 @@ fn get_type_and_value(token: &Token) -> (&str, String) {
 fn analysis_lexical(lexer: &mut Lexer) -> Vec<Token> {
     // loop through the tokens
     let mut tokens = Vec::new();
-    let now = SystemTime::now();
+
     loop {
         let token = lexer.get_next_token();
         if token == Token::EOF {
@@ -172,19 +172,16 @@ fn analysis_lexical(lexer: &mut Lexer) -> Vec<Token> {
         }
         tokens.push(token);
     }
-
-    let elapsed = now.elapsed().unwrap();
-    println!("Elapsed: {}ms", elapsed.as_millis());
     // sort tokens by their type
-    // tokens.sort_by(|a, b| format!("{:?}", a).cmp(&format!("{:?}", b)));
+    tokens.sort_by(|a, b| format!("{:?}", a).cmp(&format!("{:?}", b)));
 
-    // // print tokens in a table format
-    // println!("{:<20} | {:<20}", "Token Type", "Token Value");
-    // println!("{:-<41}", "");
-    // for token in &tokens {
-    //     let (token_type, token_value) = get_type_and_value(token);
-    //     println!("{:<20} | {:<20}", token_type, token_value);
-    // }
+    // print tokens in a table format
+    println!("{:<20} | {:<20}", "Token Type", "Token Value");
+    println!("{:-<41}", "");
+    for token in &tokens {
+        let (token_type, token_value) = get_type_and_value(token);
+        println!("{:<20} | {:<20}", token_type, token_value);
+    }
 
     tokens
 }
