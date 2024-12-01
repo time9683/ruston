@@ -155,7 +155,7 @@ impl<'a> Lexer<'a> {
             line: 1, // row
             lookahead: None,
             current_char: None,
-            iter_char: source.chars().peekable()
+            iter_char: source.chars().peekable(),
         }
     }
 
@@ -179,18 +179,17 @@ impl<'a> Lexer<'a> {
         self.col = state.col;
         self.lookahead = state.lookahead;
         self.current_char = state.current_char;
+
+        self.iter_char = self.source[self.current..].chars().peekable();
     }
 
 
-    fn current_char(&self) -> Option<char> {
-        self.current_char
-    }
 
     fn advance(&mut self) -> Option<char> {
         self.current += 1;
         self.col += 1;
 
-        if let Some('\n') = self.current_char() {
+        if let Some('\n') = self.current_char {
             self.line += 1;
             self.col = 1;
         }
@@ -207,12 +206,12 @@ impl<'a> Lexer<'a> {
         let mut number = String::new();
         let mut is_float = false;
 
-        if let Some('-') = self.current_char() {
+        if let Some('-') = self.current_char {
             number.push('-');
             self.advance();
         }
 
-        while let Some(c) = self.current_char() {
+        while let Some(c) = self.current_char {
             if c.is_digit(10) {
             number.push(c);
             self.advance();
@@ -231,17 +230,17 @@ impl<'a> Lexer<'a> {
             }
         }
 
-        if let Some('e') | Some('E') = self.current_char() {
+        if let Some('e') | Some('E') = self.current_char {
             is_float = true;
             number.push('e');
             self.advance();
 
-            if let Some('-') | Some('+') = self.current_char() {
-                number.push(self.current_char().unwrap());
+            if let Some('-') | Some('+') = self.current_char {
+                number.push(self.current_char.unwrap());
                 self.advance();
             }
 
-            while let Some(c) = self.current_char() {
+            while let Some(c) = self.current_char {
                 if c.is_digit(10) {
                     number.push(c);
                     self.advance();
@@ -252,14 +251,14 @@ impl<'a> Lexer<'a> {
         }
 
         // Check if the next character is alphanumeric, which would make the number invalid
-        if let Some(c) = self.current_char() {
+        if let Some(c) = self.current_char {
             if c.is_alphanumeric() {
                 eprintln!(
                     "Error: Invalid number format at line: {}, col: {}",
                     self.line, self.col
                 );
                 // skip the invalid number
-                while let Some(c) = self.current_char() {
+                while let Some(c) = self.current_char {
                     if !c.is_alphanumeric() {
                         break;
                     }
@@ -280,7 +279,7 @@ impl<'a> Lexer<'a> {
         let mut string = String::new();
         let mut is_closed = false;
         self.advance(); // consume the opening quote
-        while let Some(c) = self.current_char() {
+        while let Some(c) = self.current_char {
             if c == '"' {
                 self.advance(); // consume the closing quote
                 is_closed = true;
@@ -303,7 +302,7 @@ impl<'a> Lexer<'a> {
 
     fn scan_identifier_keyword(&mut self) -> String {
         let mut identifier = String::new();
-        while let Some(c) = self.current_char() {
+        while let Some(c) = self.current_char {
             if c.is_alphanumeric() || c == '_' {
                 identifier.push(c);
                 self.advance();
@@ -328,7 +327,7 @@ impl<'a> Lexer<'a> {
 
         
         loop {
-            if let Some(c) = self.current_char() {
+            if let Some(c) = self.current_char {
                 match c {
                     ' ' | '\n' | '\r' | '\t' => {
                         self.advance();
@@ -390,7 +389,7 @@ impl<'a> Lexer<'a> {
                         // if operator is "/" evaluate if it is a comment  in line
                         if c == '/' && self.peek() == Some('/') {
                             // skip comment line
-                            while let Some(c) = self.current_char() {
+                            while let Some(c) = self.current_char {
                                 if c == '\n' {
                                     break;
                                 }
@@ -405,7 +404,7 @@ impl<'a> Lexer<'a> {
                             self.advance();
                             self.advance();
                             let mut is_closed = false;
-                            while let Some(c) = self.current_char() {
+                            while let Some(c) = self.current_char {
                                 if c == '*' && self.peek() == Some('/') {
                                     self.advance();
                                     self.advance();
@@ -446,7 +445,7 @@ impl<'a> Lexer<'a> {
                     }
                     '&' | '|' | '!' | '=' => {
                         self.advance();
-                        if let Some(c2) = self.current_char() {
+                        if let Some(c2) = self.current_char {
                             if (c == '&' && c2 == '&')
                                 || (c == '|' && c2 == '|')
                                 || (c == '=' && c2 == '=')
@@ -467,7 +466,7 @@ impl<'a> Lexer<'a> {
                     }
                     '<' | '>' => {
                         self.advance();
-                        if let Some(c2) = self.current_char() {
+                        if let Some(c2) = self.current_char {
                             if c2 == '=' {
                                 self.advance();
                                 return Token::LogicalOperator(format!("{}=", c));
