@@ -121,6 +121,7 @@ pub struct LexerState {
     line: usize,
     col: usize,
     lookahead: Option<Token>,
+    current_char: Option<char>,
 }
 
 
@@ -137,6 +138,7 @@ pub struct Lexer {
     line: usize,
     col: usize,
     lookahead: Option<Token>,
+    current_char: Option<char>,
 }
 
 impl Lexer {
@@ -147,6 +149,7 @@ impl Lexer {
             col: 1,  // column
             line: 1, // row
             lookahead: None,
+            current_char: None,
         }
     }
 
@@ -157,6 +160,7 @@ impl Lexer {
     pub fn save_position(&self) -> LexerState {
         LexerState {
             current: self.current,
+            current_char: self.current_char,
             line: self.line,
             col: self.col,
             lookahead: self.lookahead.clone(),
@@ -168,12 +172,12 @@ impl Lexer {
         self.line = state.line;
         self.col = state.col;
         self.lookahead = state.lookahead;
-        
+        self.current_char = state.current_char;
     }
 
 
     fn current_char(&self) -> Option<char> {
-        self.source.chars().nth(self.current)
+        self.current_char
     }
 
     fn advance(&mut self) -> Option<char> {
@@ -186,7 +190,9 @@ impl Lexer {
         }
 
         // return the next character
-        self.current_char()
+        let char = self.source.chars().nth(self.current);
+        self.current_char = char;
+        char
     }
 
     fn peek(&self) -> Option<char> {
@@ -306,10 +312,17 @@ impl Lexer {
 
     pub fn get_next_token(&mut self) -> Token {
 
+        if  self.current_char.is_none() {
+            self.current_char = self.source.chars().nth(self.current);
+        }
+
+
+
         if let Some(token) = self.lookahead.take() {
             return token;
         }
 
+        
         loop {
             if let Some(c) = self.current_char() {
                 match c {
