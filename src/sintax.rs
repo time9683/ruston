@@ -1008,16 +1008,22 @@ impl<'a> Sintax<'a> {
                 return valid;
             }
             Statement::If(cond, body, else_stmt,_) => {
-                let mut valid = false;
-
-
-                // Validate statements if the condition results in a boolean
-                for statement in body {
-                    // Check until a type error is found
-                    valid = self.check_type(statement);
-                }
-                if let Some(else_stmt) = else_stmt {
-                    valid =  self.check_type(else_stmt);
+                // Collect the types of the condition
+                type_collection = self.collect_types(cond, type_collection);
+                
+                if let DataType::Boolean = type_collection[0] {
+                    // Validate statements if the condition results in a boolean
+                    for statement in body {
+                        // Check until a type error is found
+                        valid = self.check_type(statement);
+                    }
+                    if let Some(else_stmt) = else_stmt {
+                        valid =  self.check_type(else_stmt);
+                    }
+                } else {
+                    println!("Type Error: Condition must result in a boolean");
+                    print_expression(cond);
+                    println!();
                 }
                 return valid;
             }
