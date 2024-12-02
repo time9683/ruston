@@ -21,7 +21,7 @@ impl Semantic {
     pub fn semantic_check(&mut self) {
         let mut error = false;
         // Iterate over all statements in the program
-        for statement in &self.program {
+        for statement in &self.program.clone() {
             // Check until a type error is found
             if !self.check_type(statement) {
                 error = true;
@@ -35,7 +35,7 @@ impl Semantic {
         }
     }
 
-    fn check_type(&self, statement: &Statement) -> bool {
+    fn check_type(&mut self, statement: &Statement) -> bool {
         // Checking the types involves either checking innermost statements
         // or collecting the types of the contained expressions, to then 
         // check wether they match or not
@@ -141,7 +141,7 @@ impl Semantic {
                 if let Some(expr) = expr {
                     type_collection = self.collect_types(expr, type_collection);
                     if !self.check_collection(type_collection.clone()) {
-                    println!("Type Error: Mismatching types in statement");
+                        println!("Type Error: Mismatching types in statement");
                         print_expression(expr);
                         println!();
                         return false;
@@ -152,11 +152,23 @@ impl Semantic {
                 }
             }
             Statement::Declaration(id,  expr) => {
-                type_collection.push(self.collect_id_type(id));
+                // Check type for inference
+                let id_type = self.collect_id_type(id);
+
+                if id_type != DataType::Void {
+                    type_collection.push(id_type.clone());
+                }
+                
                 if let Some(expr) = expr {
                     type_collection = self.collect_types(expr, type_collection);
+
+                    // Infer type if it's not defined
+                    if id_type == DataType::Void && type_collection.len() == 1{
+                        self.table.update_var_type(id, type_collection[0].clone());
+                    }
+
                     if !self.check_collection(type_collection.clone()) {
-                    println!("Type Error: Mismatching types in declaration");
+                        println!("Type Error: Mismatching types in declaration");
                         print!("let {} = ", id);
                         print_expression(expr);
                         println!();
@@ -547,7 +559,7 @@ impl Semantic {
         // - Undefined if it isn't found
 
         // Get the symbol if its a variable
-        let symbol = self.table.get_symbol(id);
+        let symbol = self.table.read_symbol(id);
         if let Some(symbol) = symbol {
             // Get the type if it's a variable, the rest'll get ignored
             match &symbol.kind {

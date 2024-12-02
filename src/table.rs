@@ -3,13 +3,13 @@ use std::collections::HashMap;
 use crate::sintax::DataType;
 use std::fmt;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum UseType {
     Declaration,
     Reference,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum SymbolKind {
     Variable {
         data_type: Option<DataType>,
@@ -45,7 +45,7 @@ impl fmt::Display for SymbolKind {
 
 
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Symbol {
     pub value: String, // Lexeme
     pub  occurrence: usize, // Line of first occurrence
@@ -76,7 +76,7 @@ impl Symbol {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct SymbolTable {
     pub all_scopes: HashMap<u32, HashMap<String, Symbol>>, // Cambiar a HashMap con ID de scope
     active_scopes: Vec<u32>, // Pila de IDs de scopes activos
@@ -131,20 +131,34 @@ impl SymbolTable {
         self.all_scopes.values().flat_map(|scope| scope.values()).collect()
     }
 
-    pub fn get_symbol(&self, value: &str) -> Option<&Symbol> {
-        let symbols = self.get_all_symbols();
-        for symbol in symbols {
-            if symbol.value == value {
+    pub fn get_symbol(&mut self, value: &str) -> Option<&mut Symbol> {
+        for scope in self.all_scopes.values_mut() {
+            if let Some(symbol) = scope.get_mut(value) {
                 return Some(symbol);
             }
         }
         None
     }
 
+    pub fn read_symbol(&self, value: &str) -> Option<&Symbol> {
+        for scope in self.all_scopes.values() {
+            if let Some(symbol) = scope.get(value) {
+                return Some(symbol);
+            }
+        }
+        None
+    }
+
+    pub fn update_var_type(&mut self, value: &str, value_type: DataType) {
+        if let Some(symbol) = self.get_symbol(value) {
+            symbol.kind = SymbolKind::Variable { data_type: Some(value_type) };
+        }
+    }
+
     pub fn get_params(&self, name: &str) -> Option<&Vec<DataType>> {
         // This functions returns a vector with the parameters of a function
         // in a tuple with the name of the parameter and its data type
-        if let Some(symbol) = self.get_symbol(name) {
+        if let Some(symbol) = self.read_symbol(name) {
             if let SymbolKind::Function { param_types, .. } = &symbol.kind {
                 return Some(param_types);
             }

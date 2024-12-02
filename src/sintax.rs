@@ -20,7 +20,7 @@ pub enum DataType {
 }
 
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum Literal {
     Number(Number),
     String(String),
@@ -42,7 +42,7 @@ impl  Visitable for Literal{
 
 
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum Expresion {
     Literal(Literal),
     Identifier(String),
@@ -101,7 +101,7 @@ impl Visitable for Expresion{
 
 
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum Statement {
     ExpressionStatement(Expresion),
     Declaration(String, Option<Expresion>),
