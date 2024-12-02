@@ -1,5 +1,4 @@
 use crate::sintax::{Statement, Expresion, Literal};
-use crate::lexer::Number;
 
 pub fn display_tree(program: &Vec<Statement>) {
   println!("Program:");

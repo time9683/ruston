@@ -1,7 +1,4 @@
 // let me get the output without warnings geez
-#![allow(unused_variables)]
-#![allow(unused_imports)]
-#![allow(dead_code)]
 
 mod lexer;
 mod sintax;
@@ -9,13 +6,14 @@ mod table;
 mod tree_display;
 mod visitor;
 mod generator;
-use std::time::SystemTime;
+pub mod semantic;
 
 use lexer::{Lexer,Token};
 use dialoguer::{theme::ColorfulTheme,Select};
-use sintax::{DataType, Sintax, Statement};
+use sintax::Sintax;
 use tree_display::display_tree;
 use table::{Symbol,SymbolTable, UseType};
+use semantic::Semantic;
 
 use generator:: PythonGenerator;
 
@@ -94,17 +92,9 @@ fn main() {
         2 => {
             let mut parser = Sintax::new(lexer);
             parser.parse();
-            parser.semantic_check();
-            // DEBUGGING TODO: Remove
-            let table = parser.table;
-
-            println!("{:<20} | {:<20} | {:<20}", "Name", "Type", "Data Type");
-            println!("{:-<62}", "");
-            for symbol in table.all_scopes {
-                for symbol in symbol.1 {
-                    println!("{:<20} | {:<20} | {:<20}", symbol.0, format!("{:?}", symbol.1.use_type), symbol.1.kind);
-                }
-            }
+            let mut semantic = Semantic::new(parser.program, parser.table);
+            semantic.semantic_check();
+            
         }
         _ => {
             println!("Invalid selection");

@@ -1,3 +1,7 @@
+#![allow(unused_variables)]
+#![allow(unused_imports)]
+#![allow(dead_code)]
+
 use crate::sintax::{Statement, Expresion, Literal};
 use crate::table::SymbolTable;
 use crate::visitor::{Visitable, Visitor};

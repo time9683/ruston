@@ -145,7 +145,7 @@ impl SymbolTable {
         // This functions returns a vector with the parameters of a function
         // in a tuple with the name of the parameter and its data type
         if let Some(symbol) = self.get_symbol(name) {
-            if let SymbolKind::Function { parameters, param_types, .. } = &symbol.kind {
+            if let SymbolKind::Function { param_types, .. } = &symbol.kind {
                 return Some(param_types);
             }
         }
