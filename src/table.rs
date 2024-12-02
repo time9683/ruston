@@ -13,6 +13,7 @@ pub enum UseType {
 pub enum SymbolKind {
     Variable {
         data_type: Option<DataType>,
+        assigned: bool,
     },
     Function {
         data_type: Option<DataType>,
@@ -24,10 +25,10 @@ pub enum SymbolKind {
 impl fmt::Display for SymbolKind {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            SymbolKind::Variable { data_type } => {
+            SymbolKind::Variable { data_type, assigned } => {
                 match data_type {
                     Some(data) =>{
-                        write!(f, "{:?}", data)
+                        write!(f, "{:?} - Assigned: {}", data, assigned)
                     },
                     None =>{
                         write!(f,"no defined")
@@ -61,7 +62,7 @@ impl Symbol {
             occurrence,
             scope,
             use_type,
-            kind: SymbolKind::Variable { data_type },
+            kind: SymbolKind::Variable { data_type, assigned: false },
         }
     }
 
@@ -151,7 +152,15 @@ impl SymbolTable {
 
     pub fn update_var_type(&mut self, value: &str, value_type: DataType) {
         if let Some(symbol) = self.get_symbol(value) {
-            symbol.kind = SymbolKind::Variable { data_type: Some(value_type) };
+            symbol.kind = SymbolKind::Variable { data_type: Some(value_type), assigned: false };
+        }
+    }
+
+    pub fn update_var_assigned(&mut self, value: &str) {
+        if let Some(symbol) = self.get_symbol(value) {
+            if let SymbolKind::Variable { data_type, .. } = &symbol.kind {
+                symbol.kind = SymbolKind::Variable { data_type: data_type.clone(), assigned: true };
+            }
         }
     }
 

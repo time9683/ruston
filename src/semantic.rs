@@ -4,15 +4,13 @@ use crate::table::{SymbolTable, SymbolKind};
 use crate::tree_display::print_expression;
 
 pub struct Semantic {
-    pub errors: Vec<String>,
     program: Vec<Statement>,
-    table: SymbolTable,
+    pub table: SymbolTable,
 }
 
 impl Semantic {
     pub fn new(program: Vec<Statement>, table: SymbolTable) -> Self {
         Semantic {
-            errors: Vec::new(),
             program,
             table
         }
@@ -84,38 +82,25 @@ impl Semantic {
                 }
                 return valid;
             }
-            Statement::For(var, range, body, _) => {
-                
-                
-                // Validate the var is an identifier
-                let mut valid_var = false;
-                if let Expresion::Identifier(_) = Expresion::Identifier(var.clone()) {
-                    // Collect the type of the variable
-                    valid_var = true;
-                }
-                
+            Statement::For(_, range, body, _) => {
                 // The range is given by either a range expression or an array, both of which
                 // can be validated by just collecting their types, and checking if they only include
                 // integers.
                 let mut valid_range = false;
-                let types: Vec<DataType>;
+                let types: Vec<DataType> = self.collect_types(range, type_collection);
 
-                if valid_var {
-                    types = self.collect_types(range, type_collection);
-
-                    match range {
-                        Expresion::Range(_, _, _) => {
-                            if self.check_collection(types) {
-                                valid_range = true;
-                            }
+                match range {
+                    Expresion::Range(_, _, _) => {
+                        if self.check_collection(types) {
+                            valid_range = true;
                         }
-                        Expresion::Array(_) => {
-                            if types[0] == DataType::Integer {
-                                valid_range = true;
-                            }
-                        }
-                        _ => {}
                     }
+                    Expresion::Array(_) => {
+                        if types[0] == DataType::Integer {
+                            valid_range = true;
+                        }
+                    }
+                    _ => {}
                 }
                 
                 // Evaluate statements only if range was valid
@@ -175,13 +160,38 @@ impl Semantic {
                         println!("{:?}", type_collection);
                         return false;
                     }
+                    // Set assigned to true
+                    self.table.update_var_assigned(id);
                     return true;
                 } else {
                     return true;
                 }
             }
             Statement::Assignment(expr1, expr2) => {
-                type_collection = self.collect_types(expr1, type_collection);
+                let mut identifier: &str = "";
+                // Validate left expression is an identifier and push its type
+                if let Expresion::Identifier(id) = expr1 {
+                    identifier = id;
+                    let symbol = self.table.read_symbol(id);
+
+                    if let Some(symbol) = symbol {
+                        if let SymbolKind::Variable { data_type, .. } = &symbol.kind {
+                            if let Some(data_type) = data_type {
+                                type_collection.push(data_type.clone());
+                            } else {
+                                type_collection.push(DataType::Void);
+                            }
+                        }
+                        else {
+                            println!("Type Error: Can't assign value to function {}", id);
+                            return false;
+                        }
+                    } else {
+                        println!("Type Error: Identifier '{}' not found in symbol table", id);
+                        return false;
+                    }
+                }
+
                 type_collection = self.collect_types(expr2, type_collection);
                 if !self.check_collection(type_collection.clone()) {
                     println!("Type Error: Mismatching types in assignment");
@@ -192,6 +202,8 @@ impl Semantic {
                     println!("{:?}", type_collection);
                     return false;
                 }
+                // Set assigned to true
+                self.table.update_var_assigned(identifier);
                 return true;
             }
             Statement::ExpressionStatement(expr) => {
@@ -201,6 +213,7 @@ impl Semantic {
                     print_expression(expr);
                     println!();
                     println!("{:?}", type_collection);
+                    return false;
                 }
                 return true;
             }
@@ -446,27 +459,33 @@ impl Semantic {
                 // Collect the type of the identifier if it's a variable
                 let var_type = self.collect_id_type(id);
                 let param_type: DataType;
+                let assigned: bool;
 
                 // Validate the type of the identifier
                 match var_type {
                     // If it's undefined, it's not a variable, so check if it's a param
                     DataType::Undefined => {
                         param_type = self.collect_param_type(id);
-
                         match param_type {
                             // If it's still undefined, it's not a variable or a param
                             DataType::Undefined => {
                                 println!("Type Error: Identifier '{}' not found in symbol table", id);
                                 type_collection.push(DataType::Void);
                             }
-                            // If it's a param, push the param's type
+                            // If it's a param, push the param's type if it's been assigned
                             _ => {
-                                type_collection.push(param_type);
+                                type_collection.push(param_type)
                             }
                         }
                     }
                     _ => {
-                        type_collection.push(var_type);
+                        assigned = self.check_assignment(id);
+                        if assigned {
+                            type_collection.push(var_type);
+                        } else {
+                            println!("Type Error: Identifier '{}' has no value assigned", id);
+                            type_collection.push(DataType::Void);
+                        }
                     }
                 }
             }
@@ -563,7 +582,7 @@ impl Semantic {
         if let Some(symbol) = symbol {
             // Get the type if it's a variable, the rest'll get ignored
             match &symbol.kind {
-                SymbolKind::Variable { data_type } => {
+                SymbolKind::Variable { data_type, .. } => {
                     if let Some(data_type) = data_type {
                         return data_type.clone();
                     }
@@ -579,6 +598,25 @@ impl Semantic {
             }
         }
         return DataType::Undefined;
+    }
+
+    fn check_assignment(&self, id: &String) -> bool {
+        // This function is used to check wether a variable has been assigned a value or not
+
+        // Get the symbol if its a variable
+        let symbol = self.table.read_symbol(id);
+        if let Some(symbol) = symbol {
+            // Get the assignment if it's a variable, the rest'll get ignored
+            match &symbol.kind {
+                SymbolKind::Variable { assigned, .. } => {
+                    return assigned.clone();
+                }
+                _ => {
+                    return false;
+                }
+            }
+        }
+        return false;
     }
     
     fn collect_param_type(&self, id: &String) -> DataType {
